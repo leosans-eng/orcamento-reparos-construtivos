@@ -872,8 +872,8 @@ def gerar_orcamento():
     )
 
     fundo_total_final = PatternFill(
-        start_color="D9EAF7",
-        end_color="D9EAF7",
+        start_color="006699",
+        end_color="006699",
         fill_type="solid"
     )
     
@@ -1007,10 +1007,24 @@ def gerar_orcamento():
         # TOTAL FINAL #
         # ----------- #
         elif descricao == "TOTAL GERAL":
+            linha_idx = row[0].row
+            descricao_formatada = "Total do Orçamento"
 
-            for cell in row:
+            ws.cell(row=linha_idx, column=1, value=descricao_formatada)
+            for col_idx in range(2, 6):
+                ws.cell(row=linha_idx, column=col_idx, value=None)
+
+            ws.merge_cells(start_row=linha_idx, start_column=1, end_row=linha_idx, end_column=5)
+
+            for col_idx in range(1, 7):
+                cell = ws.cell(row=linha_idx, column=col_idx)
                 cell.fill = fundo_total_final
-                cell.font = Font(bold=True, size=12)
+                cell.font = Font(bold=True, size=12, color="FFFFFF")
+                cell.alignment = Alignment(
+                    horizontal="right" if col_idx == 1 else "center",
+                    vertical="center",
+                    wrap_text=True
+                )
 
         # --------------------- #
         # SUBTÍTULO DE ANOMALIA #
