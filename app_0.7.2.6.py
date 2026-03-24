@@ -219,6 +219,10 @@ vicios = [
 combo_vicio = ttk.Combobox(frame_anomalia, width=40, values=vicios, state="readonly")
 combo_vicio.pack(pady=5)
 
+comodos_bloqueados_por_vicio = {
+    "Desplacamento de azulejos": {"Sala", "Dormitório 1", "Dormitório 2"}
+}
+
 # ---------------------------- #
 # CHECKBOXES DE CÔMODOS        #
 # ---------------------------- #
@@ -245,7 +249,29 @@ for r, linha in enumerate(linhas):
         chk = tk.Checkbutton(frame_check, text=comodo, variable=var)
         chk.grid(row=r, column=c, sticky="w", padx=10)
 
-        checkbox_comodos[comodo] = var
+        checkbox_comodos[comodo] = {
+            "var": var,
+            "widget": chk
+        }
+
+def atualizar_checkboxes_por_vicio(event=None):
+
+    vicio_selecionado = combo_vicio.get()
+
+    comodos_bloqueados = comodos_bloqueados_por_vicio.get(vicio_selecionado, set())
+
+    for comodo, dados in checkbox_comodos.items():
+
+        var = dados["var"]
+        chk = dados["widget"]
+
+        if comodo in comodos_bloqueados:
+            var.set(False)
+            chk.config(state="disabled")
+        else:
+            chk.config(state="normal")
+
+combo_vicio.bind("<<ComboboxSelected>>", atualizar_checkboxes_por_vicio)
 
 # ---------------------------- #
 # FEEDBACK VISUAL              #
@@ -318,7 +344,7 @@ def adicionar_anomalia():
         return
 
     comodos_afetados = [
-        c for c in lista_comodos if checkbox_comodos[c].get()
+        c for c in lista_comodos if checkbox_comodos[c]["var"].get()
     ]
 
     if not comodos_afetados:
@@ -354,8 +380,8 @@ def adicionar_anomalia():
                     "orange red"
                 )
 
-            for var in checkbox_comodos.values():
-                var.set(False)
+            for dados in checkbox_comodos.values():
+                dados["var"].set(False)
 
             return
         
@@ -369,8 +395,8 @@ def adicionar_anomalia():
 
     atualizar_tree()
 
-    for var in checkbox_comodos.values():
-        var.set(False)
+    for dados in checkbox_comodos.values():
+        dados["var"].set(False)
 
     mostrar_feedback("Anomalia adicionada com sucesso.", "green")
 
@@ -854,8 +880,8 @@ def gerar_orcamento():
     fonte_cabecalho = Font(bold=True)
 
     fundo_cabecalho = PatternFill(
-        start_color="D9EAF7",
-        end_color="D9EAF7",
+        start_color="006699",
+        end_color="006699",
         fill_type="solid"
     )
 
@@ -888,7 +914,14 @@ def gerar_orcamento():
         for cell in row:
             cell.border = borda
     
-    for row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=5, max_col=6):
+    # Linha de título logo acima do cabeçalho original
+    ws.insert_rows(1)
+    nome_titulo = entrada_proprietario.get().strip() or ""
+    ws.merge_cells("A1:F1")
+    ws["A1"] = f"ORÇAMENTO DE REPAROS DE VÍCIOS CONSTRUTIVOS - {nome_titulo.upper()}"
+    ws.row_dimensions[1].height = 24.75
+
+    for row in ws.iter_rows(min_row=3, max_row=ws.max_row, min_col=5, max_col=6):
         for cell in row:
             cell.number_format = 'R$ #,##0.00'
 
@@ -930,9 +963,15 @@ def gerar_orcamento():
     ws.column_dimensions["F"].width = max_length
 
     # centralizar e quebrar texto do cabeçalho
-    for cell in ws[1]:
-        cell.font = fonte_cabecalho
-        cell.fill = fundo_cabecalho        
+    # título (linha 1)
+    ws["A1"].font = Font(bold=True, size=12, color="FFFFFF")
+    ws["A1"].fill = fundo_cabecalho
+    ws["A1"].alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+
+    # cabeçalho da tabela (linha 2)
+    for cell in ws[2]:
+        cell.font = Font(bold=True, color="FFFFFF")
+        cell.fill = fundo_cabecalho
         cell.alignment = Alignment(
             horizontal="center",
             vertical="center",
@@ -960,7 +999,7 @@ def gerar_orcamento():
                 vertical="center",
                 wrap_text=True
             )
-    for row in ws.iter_rows(min_row=2, max_row=ws.max_row):
+    for row in ws.iter_rows(min_row=3, max_row=ws.max_row):
 
         codigo = row[0].value
         descricao = row[1].value
