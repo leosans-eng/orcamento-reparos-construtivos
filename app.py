@@ -14,7 +14,7 @@ from datetime import datetime
 #  VERSÃO DO SISTEMA (INTERFACE E EXPORTAÇÕES) #
 #  ------------------------------------------- #
 
-APP_VERSION = "0.8.0.0"
+APP_VERSION = "0.9.0.0"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PASTA_SINAPI_PROCESSADO = os.path.join(BASE_DIR, "sinapi", "sinapi_processado")
