@@ -3,11 +3,117 @@ from tkinter import ttk, filedialog
 import pandas as pd
 import json
 import math
+import re
 from openpyxl import load_workbook
 from openpyxl.styles import Alignment, Border, Side, Font, PatternFill
 import os
 import unicodedata
 from datetime import datetime
+
+#  ------------------------------------------- #
+#  VERSÃO DO SISTEMA (INTERFACE E EXPORTAÇÕES) #
+#  ------------------------------------------- #
+
+APP_VERSION = "0.8.0.0"
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+PASTA_SINAPI_PROCESSADO = os.path.join(BASE_DIR, "sinapi", "sinapi_processado")
+CAMINHO_FALLBACK_SINAPI = os.path.join(BASE_DIR, "sinapi_precos.csv")
+
+
+def _parse_referencia_do_nome_csv(nome_arquivo):
+    """Extrai (ano, mês) de SINAPI_Referência_YYYY_MM.csv (acento opcional em Referência)."""
+    m = re.match(
+        r"(?i)SINAPI_Refer[eê]ncia_(\d{4})_(\d{2})\.csv$",
+        nome_arquivo.strip(),
+    )
+    if not m:
+        return None
+    ano, mes = int(m.group(1)), int(m.group(2))
+    if not (1 <= mes <= 12):
+        return None
+    return ano, mes
+
+
+def obter_csv_sinapi_mais_recente(pasta_processado):
+    """
+    Retorna (caminho_absoluto, rotulo_referencia) do CSV mais recente na pasta processada.
+    rotulo_referencia: texto para interface/planilha, ex. '03/2026'.
+    """
+    if not os.path.isdir(pasta_processado):
+        return None, None
+    candidatos = []
+    for nome in os.listdir(pasta_processado):
+        if not nome.lower().endswith(".csv"):
+            continue
+        tupla_data = _parse_referencia_do_nome_csv(nome)
+        if tupla_data:
+            candidatos.append(
+                (tupla_data, os.path.join(pasta_processado, nome), nome)
+            )
+    if not candidatos:
+        return None, None
+    candidatos.sort(key=lambda x: x[0], reverse=True)
+    (ano, mes), caminho, _ = candidatos[0]
+    rotulo = f"{mes:02d}/{ano}"
+    return caminho, rotulo
+
+
+def informacoes_versao():
+    return {
+        "app": APP_VERSION,
+        "sinapi": sinapi_referencia_rotulo,
+        "arquivo_sinapi": os.path.basename(caminho_sinapi_carregado),
+    }
+
+
+def texto_rodape_interface():
+    info = informacoes_versao()
+    return f"Sistema ORC v{info['app']} · SINAPI referência {info['sinapi']}"
+
+
+# Atraso antes do nome do CSV sair deslizando à direita (ms)
+RODAPE_CSV_SUMIR_APOS_MS = 3000
+# Intervalo e passo do deslize (quanto menor o intervalo, mais suave)
+RODAPE_CSV_DESLIZE_INTERVALO_MS = 35
+RODAPE_CSV_DESLIZE_PASSO_PX = 4
+
+
+def _agendar_sumico_nome_csv_deslize_direita(label_csv, frame_rodape):
+    """Após um tempo, retira o rótulo do layout e o desloca para a direita até sumir."""
+
+    def executar():
+        if not label_csv.winfo_exists():
+            return
+        if label_csv.winfo_manager() != "pack":
+            return
+        label_csv.pack_forget()
+        label_csv.place(relx=1.0, rely=0.5, anchor="e", x=-6, in_=frame_rodape)
+
+        def deslizar():
+            if not label_csv.winfo_exists():
+                return
+            frame_rodape.update_idletasks()
+            label_csv.update_idletasks()
+            limite = frame_rodape.winfo_width()
+            # Posição à esquerda do widget em relação ao rodapé (sai totalmente à direita)
+            if label_csv.winfo_x() - frame_rodape.winfo_x() > limite + 8:
+                label_csv.destroy()
+                return
+            info = label_csv.place_info()
+            cur_x = int(float(info.get("x", 0)))
+            label_csv.place(
+                relx=1.0,
+                rely=0.5,
+                anchor="e",
+                x=cur_x + RODAPE_CSV_DESLIZE_PASSO_PX,
+                in_=frame_rodape,
+            )
+            frame_rodape.after(RODAPE_CSV_DESLIZE_INTERVALO_MS, deslizar)
+
+        frame_rodape.after(25, deslizar)
+
+    frame_rodape.after(RODAPE_CSV_SUMIR_APOS_MS, executar)
 
 # ---------------------------- #
 # CARREGAR DADOS JSON e CSV    #
@@ -19,9 +125,22 @@ with open("vicios_construtivos.json", "r", encoding="utf-8") as f:
 if isinstance(dados_json, list):
     dados_json = dados_json[0]
 
-# CSV a ser lido. Trocar para a pasta sinapi/sinapi_processado no futuro
-# Analisar forma de automatizar o arquivo a ser lido, para pegar o mais recente
-sinapi = pd.read_csv("sinapi_precos.csv", dtype={"codigo": str})
+caminho_sinapi_carregado, sinapi_referencia_rotulo = obter_csv_sinapi_mais_recente(
+    PASTA_SINAPI_PROCESSADO
+)
+
+if caminho_sinapi_carregado is None and os.path.isfile(CAMINHO_FALLBACK_SINAPI):
+    caminho_sinapi_carregado = CAMINHO_FALLBACK_SINAPI
+    sinapi_referencia_rotulo = "arquivo local (sinapi_precos.csv na raiz do projeto)"
+
+if caminho_sinapi_carregado is None:
+    raise SystemExit(
+        "Não foi encontrado CSV SINAPI em sinapi/sinapi_processado "
+        "(padrão: SINAPI_Referência_AAAA_MM.csv) e o arquivo de contingência "
+        f"sinapi_precos.csv não existe em:\n{BASE_DIR}"
+    )
+
+sinapi = pd.read_csv(caminho_sinapi_carregado, dtype={"codigo": str})
 
 sinapi.columns = sinapi.columns.str.strip().str.lower()
 
@@ -31,7 +150,33 @@ sinapi.columns = sinapi.columns.str.strip().str.lower()
 
 janela = tk.Tk()
 janela.title("Orçamento de Reparos Construtivos - ORC")
-janela.geometry("990x580+200+40")
+janela.geometry("990x610+200+40")
+
+# ---------------------------- #
+# RODAPÉ (VERSÕES / SINAPI)    #
+# ---------------------------- #
+
+frame_rodape = tk.Frame(janela)
+frame_rodape.pack(side="bottom", fill="x", padx=10, pady=(0, 6))
+
+tk.Label(
+    frame_rodape,
+    text=texto_rodape_interface(),
+    font=("Arial", 8),
+    fg="#555555",
+    anchor="w",
+).pack(side="left", anchor="w")
+
+label_nome_csv_rodape = tk.Label(
+    frame_rodape,
+    text=f"{os.path.basename(caminho_sinapi_carregado)} ⭠ Arquivo de base",
+    font=("Arial", 8, "bold"),
+    fg="#C62828",
+    anchor="e",
+)
+label_nome_csv_rodape.pack(side="right", anchor="e")
+
+_agendar_sumico_nome_csv_deslize_direita(label_nome_csv_rodape, frame_rodape)
 
 # ---------------------------- #
 # SCROLL DA JANELA             #
@@ -935,7 +1080,10 @@ def gerar_orcamento():
     ws.insert_rows(1)
     nome_titulo = entrada_proprietario.get().strip() or ""
     ws.merge_cells("A1:F1")
-    ws["A1"] = f"ORÇAMENTO DE REPAROS DE VÍCIOS CONSTRUTIVOS - {nome_titulo.upper()}"
+    titulo_base = "ORÇAMENTO DE REPAROS DE VÍCIOS CONSTRUTIVOS"
+    ws["A1"] = (
+        f"{titulo_base} - {nome_titulo.upper()}" if nome_titulo else titulo_base
+    )
     ws.row_dimensions[1].height = 24.75
 
     for row in ws.iter_rows(min_row=3, max_row=ws.max_row, min_col=5, max_col=6):
@@ -1091,6 +1239,21 @@ def gerar_orcamento():
                 cell.fill = fundo_anomalia
                 cell.font = Font(bold=True, size=12)
 
+    linha_nota_sinapi = ws.max_row + 1
+    estado_planilha = combo_estado.get().strip()
+    sufixo_referencia = (
+        f"{estado_planilha} {sinapi_referencia_rotulo}"
+        if estado_planilha
+        else sinapi_referencia_rotulo
+    )
+    texto_nota = f"Base de preços: SINAPI — referência: {sufixo_referencia}"
+    ws.merge_cells(
+        start_row=linha_nota_sinapi, start_column=1,
+        end_row=linha_nota_sinapi, end_column=6,
+    )
+    celula_nota = ws.cell(row=linha_nota_sinapi, column=1, value=texto_nota)
+    celula_nota.font = Font(size=9, italic=True, color="444444")
+    celula_nota.alignment = Alignment(horizontal="left", vertical="center", wrap_text=True)
 
     wb.save(arquivo)
     os.startfile(arquivo)
