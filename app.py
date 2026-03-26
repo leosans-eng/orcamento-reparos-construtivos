@@ -14,7 +14,7 @@ from datetime import datetime
 # VERSÃO DO SISTEMA (INTERFACE E EXPORTAÇÕES) #
 # ------------------------------------------- #
 
-APP_VERSION = "0.9.4.3"
+APP_VERSION = "0.9.5.0"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PASTA_SINAPI_PROCESSADO = os.path.join(BASE_DIR, "sinapi", "sinapi_processado")
@@ -287,6 +287,16 @@ chk_acompanhamento = tk.Checkbutton(
 )
 
 chk_acompanhamento.grid(row=1, column=0, columnspan=2, sticky="w", padx=5)
+
+var_eventuais = tk.BooleanVar(value=True)
+
+chk_eventuais = tk.Checkbutton(
+    frame_dados,
+    text="Eventuais (10%)",
+    variable=var_eventuais
+)
+
+chk_eventuais.grid(row=1, column=1, padx=5)
 
 tk.Label(frame_dados, text="Aluguel (R$):").grid(row=1, column=2, padx=5)
 
@@ -1071,6 +1081,25 @@ def gerar_orcamento():
 
     df = pd.concat([df, linha_bdi], ignore_index=True)
 
+    # --------- #
+    # EVENTUAIS #
+    # --------- #
+
+    base_eventuais = total_geral + valor_bdi
+    valor_eventuais = base_eventuais * 0.10 if var_eventuais.get() else 0
+
+    if var_eventuais.get():
+        linha_eventuais = pd.DataFrame([{
+            "Código SINAPI": "",
+            "Descrição do item": "Eventuais (10%)",
+            "Unid.": "",
+            "Qtd.": "",
+            "Valor Unit.": "",
+            "Total s/ BDI": round(valor_eventuais, 2)
+        }])
+
+        df = pd.concat([df, linha_eventuais], ignore_index=True)
+
     # ------- #
     # ALUGUEL #
     # ------- #
@@ -1098,7 +1127,7 @@ def gerar_orcamento():
     # TOTAL FINAL #
     # ----------- #
 
-    total_final = total_geral + valor_bdi + aluguel
+    total_final = total_geral + valor_bdi + valor_eventuais + aluguel
 
     linha_total_final = pd.DataFrame([{
         "Código SINAPI": "",
@@ -1290,6 +1319,7 @@ def gerar_orcamento():
         if descricao_norm and (
             descricao_norm == "TOTAL SEM BDI" or
             descricao_norm.startswith("TOTAL DO BDI") or
+            descricao_norm.startswith("EVENTUAIS") or
             descricao_norm == "ALUGUEL (1 MES)"
         ):
             linha_idx = row[0].row
