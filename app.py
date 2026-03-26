@@ -10,11 +10,11 @@ import os
 import unicodedata
 from datetime import datetime
 
-#  ------------------------------------------- #
-#  VERSÃO DO SISTEMA (INTERFACE E EXPORTAÇÕES) #
-#  ------------------------------------------- #
+# ------------------------------------------- #
+# VERSÃO DO SISTEMA (INTERFACE E EXPORTAÇÕES) #
+# ------------------------------------------- #
 
-APP_VERSION = "0.9.4.1"
+APP_VERSION = "0.9.4.3"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PASTA_SINAPI_PROCESSADO = os.path.join(BASE_DIR, "sinapi", "sinapi_processado")
@@ -278,7 +278,7 @@ def obter_estado():
 
 # linha 2 - Estado, Aluguel e BDI
 
-var_acompanhamento = tk.BooleanVar()
+var_acompanhamento = tk.BooleanVar(value=True)
 
 chk_acompanhamento = tk.Checkbutton(
     frame_dados,
@@ -776,9 +776,9 @@ def calcular_subtotal_anomalia(item):
 
     return total
 
-# ---------------------------- #
-# AUXILIAR DE NOME DE ARQUIVO  #
-# ---------------------------- #
+# ---------------- #
+# NOME DE ARQUIVOS #
+# ---------------- #
 
 def nome_arquivo(texto):
 
@@ -803,6 +803,21 @@ def normalizar_texto(texto):
     texto = unicodedata.normalize("NFKD", texto)
     texto = "".join(c for c in texto if not unicodedata.combining(c))
     return texto.upper()
+
+# ------------------- #
+# ORDEM DO ORÇAMENTO  #
+# ------------------- #
+
+def definir_ordem(anomalia):
+    nome = normalizar_texto(anomalia)
+
+    if "ACOMPANHAMENTO" in nome:
+        return 1
+
+    if "ENTULHO" in nome or "LIMPEZA" in nome:
+        return 3
+
+    return 2
 
 # ---------------------------- #
 # GERAR ORÇAMENTO              #
@@ -968,10 +983,8 @@ def gerar_orcamento():
                 "Total s/ BDI": round(total, 2)
             })
 
-    # Criação do DataFrame
+    # Criação do DataFrame 
     df = pd.DataFrame(linhas)
-
-    df = df.sort_values(["Anomalia", "Ordem"])
 
     df = df.groupby(
         ["Anomalia", "Código SINAPI", "Descrição do item", "Unid.", "Valor Unit."],
@@ -982,13 +995,15 @@ def gerar_orcamento():
         "Total s/ BDI": "sum"
     })
 
+    df["Ordem_Execucao"] = df["Anomalia"].apply(definir_ordem)
+
     total_geral = df["Total s/ BDI"].sum()
 
-    df = df.sort_values(["Anomalia"])
+    df = df.sort_values(["Ordem_Execucao"])
 
     linhas_final = []
 
-    for anomalia, grupo in df.groupby("Anomalia"):
+    for anomalia, grupo in df.groupby("Anomalia", sort=False):
 
         subtotal = grupo["Total s/ BDI"].sum()
 
