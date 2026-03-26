@@ -1,7 +1,7 @@
 {
   "anomalias": {
 
-    "Desplacamento de pisos cerâmicos": {
+    "Desplacamento de pisos cerâmicos em área seca": {
       "grupo_reparo": "reparo_pisos_ceramicos",
       "etapas": [
 
@@ -141,7 +141,29 @@
       ]
     },
 
+    "Falta de DR": {
+      "grupo_reparo": "reparo_dr",
+      "etapas": [
+
+        {
+          "codigo_sinapi": "88264",
+          "unidade": "H",
+          "tipo_calculo": "fixo",
+          "coeficiente": 4.0
+        },
+
+        {
+          "codigo_sinapi": "39447",
+          "unidade": "Un",
+          "tipo_calculo": "fixo",
+          "coeficiente": 1.0
+        }
+
+      ]
+    },
+
     "Infiltração pela esquadria": {
+      "grupo_reparo": "reparo_esquadrias",
       "etapas": [
 
         {
@@ -222,7 +244,85 @@
         }
 
       ]
+    },
+
+    "Trinca saindo da janela": {
+      "grupo_reparo": "reparo_trincas",
+      "etapas": [
+
+        {
+          "codigo_sinapi": "5318",
+          "unidade": "L",
+          "tipo_calculo": "por_comodo",
+          "coeficiente": 0.12
+        },
+
+        {
+          "codigo_sinapi": "88316",
+          "unidade": "H",
+          "tipo_calculo": "por_comodo",
+          "coeficiente": 1.2
+        },
+
+        {
+          "codigo_sinapi": "97631",
+          "unidade": "m²",
+          "tipo_calculo": "por_comodo",
+          "coeficiente": 1.2
+        },
+
+        {
+          "codigo_sinapi": "87777",
+          "unidade": "m²",
+          "tipo_calculo": "por_comodo",
+          "coeficiente": 1.2
+        },
+
+        {
+          "codigo_sinapi": "34558",
+          "unidade": "m",
+          "tipo_calculo": "por_comodo",
+          "coeficiente": 1.0
+        },
+
+        {
+          "codigo_sinapi": "157",
+          "unidade": "KG",
+          "tipo_calculo": "por_comodo",
+          "coeficiente": 0.35
+        },
+
+        {
+          "codigo_sinapi": "88309",
+          "unidade": "H",
+          "tipo_calculo": "por_comodo",
+          "coeficiente": 1.2
+        },
+
+        {
+          "codigo_sinapi": "43465",
+          "unidade": "H",
+          "tipo_calculo": "por_comodo",
+          "coeficiente": 1.2
+        },
+
+        {
+          "codigo_sinapi": "88485",
+          "unidade": "m²",
+          "tipo_calculo": "area_rev_arg",
+          "coeficiente": 1.0
+        },
+
+        {
+          "codigo_sinapi": "104642",
+          "unidade": "m²",
+          "tipo_calculo": "area_rev_arg",
+          "coeficiente": 1.0
+        }
+
+      ]
     }
+
   },
 
   "itens_gerais":{

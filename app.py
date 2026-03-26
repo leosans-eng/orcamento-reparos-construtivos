@@ -14,7 +14,7 @@ from datetime import datetime
 # VERSÃO DO SISTEMA (INTERFACE E EXPORTAÇÕES) #
 # ------------------------------------------- #
 
-APP_VERSION = "0.9.5.1"
+APP_VERSION = "0.9.6.1"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PASTA_SINAPI_PROCESSADO = os.path.join(BASE_DIR, "sinapi", "sinapi_processado")
@@ -121,7 +121,9 @@ if isinstance(dados_json, list):
 nomes_grupos_reparo = {
     "reparo_pisos_ceramicos": "Reparo de Pisos Cerâmicos",
     "reparo_azulejos": "Reparo de Azulejos",
-    "reparo_trincas": "Intervenção de fissuras e trincas"
+    "reparo_trincas": "Intervenção de fissuras e trincas",
+    "reparo_esquadrias": "Reparo de infiltrações por esquadrias",
+    "reparo_dr": "Instalação de Dispositivo DR"
 }
 
 caminho_sinapi_carregado, sinapi_referencia_rotulo = obter_csv_sinapi_mais_recente(
@@ -348,6 +350,14 @@ comodos_area_seca = [
     "Dormitório 2"
 ]
 
+comodos_dr = [
+    "Dormitório 1",
+    "Dormitório 2",
+    "Banheiro",
+    "Cozinha",
+    "Área de Serviço"
+]
+
 comodos = {}
 
 for i, c in enumerate(lista_comodos, start=1):
@@ -384,12 +394,14 @@ frame_anomalia = tk.LabelFrame(frame_conteudo, text="Selecionar Anomalia")
 frame_anomalia.grid(row=1, column=0, sticky="nsew", padx=10, pady=5)
 
 vicios = [
-    "Desplacamento de pisos cerâmicos",
+    "Desplacamento de pisos cerâmicos em área seca",
     "Desplacamento de pisos cerâmicos em área molhada",
     "Desplacamento de azulejos",
     "Manchas nos pisos",
     "Manchas nos azulejos",
+    "Falta de DR",
     "Infiltração pela esquadria",
+    "Trinca saindo da janela",
     "Trinca na laje percorrendo o eletroduto"
 ]
 
@@ -399,9 +411,10 @@ combo_vicio.pack(pady=5)
 comodos_bloqueados_por_vicio = {
     "Desplacamento de azulejos": comodos_area_seca,
     "Desplacamento de pisos cerâmicos em área molhada": comodos_area_seca,
-    "Desplacamento de pisos cerâmicos": comodos_area_molhada,
+    "Desplacamento de pisos cerâmicos em área seca": comodos_area_molhada,
     "Manchas nos azulejos": comodos_area_seca,
-    "Manchas nos pisos": comodos_area_seca
+    "Manchas nos pisos": comodos_area_seca,
+    "Falta de DR": comodos_dr
 }
 
 # ---------------------------- #
