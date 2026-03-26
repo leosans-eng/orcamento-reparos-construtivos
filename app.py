@@ -14,7 +14,7 @@ from datetime import datetime
 #  VERSÃO DO SISTEMA (INTERFACE E EXPORTAÇÕES) #
 #  ------------------------------------------- #
 
-APP_VERSION = "0.9.3.3"
+APP_VERSION = "0.9.4.1"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PASTA_SINAPI_PROCESSADO = os.path.join(BASE_DIR, "sinapi", "sinapi_processado")
@@ -277,6 +277,16 @@ def obter_estado():
     return estado
 
 # linha 2 - Estado, Aluguel e BDI
+
+var_acompanhamento = tk.BooleanVar()
+
+chk_acompanhamento = tk.Checkbutton(
+    frame_dados,
+    text="Acompanhamento Técnico",
+    variable=var_acompanhamento
+)
+
+chk_acompanhamento.grid(row=1, column=0, columnspan=2, sticky="w", padx=5)
 
 tk.Label(frame_dados, text="Aluguel (R$):").grid(row=1, column=2, padx=5)
 
@@ -815,6 +825,8 @@ def gerar_orcamento():
     # controle para evitar duplicação de reparos
     reparos_executados = set()
 
+    # Para ANOMALIAS selecionadas
+
     for item in lista_anomalias:
 
         if not isinstance(item, dict):
@@ -906,6 +918,57 @@ def gerar_orcamento():
                     "Total s/ BDI": round(total, 2)
                 })
 
+    # Para ITENS GERAIS que irão em todos os orçamentos
+    
+    itens_gerais = dados_json.get("itens_gerais", {})
+
+    for chave, item in itens_gerais.items():
+
+        incluir = False
+
+        if item.get("tipo") == "automatico":
+            incluir = True
+
+        elif item.get("tipo") == "checkbox":
+            if chave == "acompanhamento_tecnico" and var_acompanhamento.get():
+                incluir = True
+
+        if not incluir:
+            continue
+
+        for ordem, etapa in enumerate(item["etapas"]):
+
+            quantidade = calcular_quantidade(etapa, {})
+
+            codigo = str(etapa["codigo_sinapi"])
+            estado = obter_estado()
+
+            linha_sinapi = sinapi[
+                (sinapi["codigo"] == codigo) &
+                (sinapi["estado"] == estado)
+            ]
+
+            if not linha_sinapi.empty:
+                descricao = linha_sinapi.iloc[0]["descricao"]
+                valor = linha_sinapi.iloc[0]["custo"]
+            else:
+                descricao = "Código não encontrado"
+                valor = 0
+
+            total = quantidade * valor
+
+            linhas.append({
+                "Anomalia": item["descricao"],
+                "Ordem": ordem,
+                "Código SINAPI": codigo,
+                "Descrição do item": descricao,
+                "Unid.": etapa["unidade"],
+                "Qtd.": round(quantidade, 2),
+                "Valor Unit.": valor,
+                "Total s/ BDI": round(total, 2)
+            })
+
+    # Criação do DataFrame
     df = pd.DataFrame(linhas)
 
     df = df.sort_values(["Anomalia", "Ordem"])
@@ -1314,11 +1377,6 @@ botao_gerar = tk.Button(
 
     command=gerar_orcamento
 )
-
-for nome, dados in dados_json["anomalias"].items():
-    for etapa in dados["etapas"]:
-        if etapa["tipo_calculo"] in ("fixo", "por_comodo") and "quantidade" not in etapa:
-            print(f"Erro em {nome}: etapa sem quantidade ->", etapa)
 
 botao_gerar.pack(pady=(5,10))
 

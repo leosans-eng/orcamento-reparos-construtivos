@@ -223,5 +223,52 @@
 
       ]
     }
+  },
+
+  "itens_gerais":{
+
+    "acompanhamento_tecnico": {
+      "descricao": "Acompanhamento Técnico",
+      "tipo": "checkbox",
+      "etapas": [
+        
+        {
+          "codigo_sinapi": "90778",
+          "unidade": "H",
+          "tipo_calculo": "fixo",
+          "coeficiente": 16
+        }
+
+      ]
+    },
+
+    "limpeza_geral": {
+      "descricao": "Destinação de entulho e limpeza geral",
+      "tipo": "automatico",
+      "etapas": [
+
+        {
+          "codigo_sinapi": "100981",
+          "unidade": "m³",
+          "tipo_calculo": "fixo",
+          "coeficiente": 15
+        },
+
+        {
+          "codigo_sinapi": "88316",
+          "unidade": "H",
+          "tipo_calculo": "fixo",
+          "coeficiente": 16
+        },
+
+        {
+          "codigo_sinapi": "99811",
+          "unidade": "m²",
+          "tipo_calculo": "fixo",
+          "coeficiente": 30
+        }
+
+      ]
+    }
   }
 }
