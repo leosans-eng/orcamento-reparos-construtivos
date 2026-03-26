@@ -13,8 +13,7 @@ from datetime import datetime
 # ------------------------------------------- #
 # VERSÃO DO SISTEMA (INTERFACE E EXPORTAÇÕES) #
 # ------------------------------------------- #
-
-APP_VERSION = "0.9.6.1"
+APP_VERSION = "0.9.6.2"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PASTA_SINAPI_PROCESSADO = os.path.join(BASE_DIR, "sinapi", "sinapi_processado")
@@ -111,7 +110,6 @@ def _agendar_sumico_nome_csv_deslize_direita(label_csv, frame_rodape):
 # ---------------------------- #
 # CARREGAR DADOS JSON e CSV    #
 # ---------------------------- #
-
 with open("vicios_construtivos.json", "r", encoding="utf-8") as f:
     dados_json = json.load(f)
 
@@ -148,7 +146,6 @@ sinapi.columns = sinapi.columns.str.strip().str.lower()
 # ---------------------------- #
 # JANELA PRINCIPAL             #
 # ---------------------------- #
-
 janela = tk.Tk()
 janela.title("Orçamento de Reparos Construtivos - ORC")
 janela.geometry("990x610+200+40")
@@ -156,7 +153,6 @@ janela.geometry("990x610+200+40")
 # ---------------------------- #
 # RODAPÉ (VERSÕES / SINAPI)    #
 # ---------------------------- #
-
 frame_rodape = tk.Frame(janela)
 frame_rodape.pack(side="bottom", fill="x", padx=10, pady=(0, 6))
 
@@ -182,7 +178,6 @@ _agendar_sumico_nome_csv_deslize_direita(label_nome_csv_rodape, frame_rodape)
 # ---------------------------- #
 # SCROLL DA JANELA             #
 # ---------------------------- #
-
 container = tk.Frame(janela)
 container.pack(fill="both", expand=True)
 
@@ -235,7 +230,6 @@ scrollbar.pack(side="right", fill="y")
 # ---------------------------- #
 # FRAME DADOS DO ORÇAMENTO     #
 # ---------------------------- #
-
 frame_dados = tk.LabelFrame(frame_principal, text="Dados do Orçamento")
 frame_dados.pack(fill="x", padx=10, pady=10)
 
@@ -275,7 +269,6 @@ def obter_estado():
     return estado
 
 # linha 2 - Acompanhamento Técnico, Eventuais, Estado, Aluguel e BDI
-
 var_acompanhamento = tk.BooleanVar(value=True)
 
 chk_acompanhamento = tk.Checkbutton(
@@ -311,7 +304,6 @@ entrada_bdi.insert(0, "30,45")
 # ---------------------------- #
 # FRAME METRAGEM DOS CÔMODOS   #
 # ---------------------------- #
-
 frame_conteudo = tk.Frame(frame_principal)
 frame_conteudo.pack(fill="both", expand=True)
 
@@ -389,7 +381,6 @@ for i, c in enumerate(lista_comodos, start=1):
 # ---------------------------- #
 # FRAME SELEÇÃO DE ANOMALIA    #
 # ---------------------------- #
-
 frame_anomalia = tk.LabelFrame(frame_conteudo, text="Selecionar Anomalia")
 frame_anomalia.grid(row=1, column=0, sticky="nsew", padx=10, pady=5)
 
@@ -420,7 +411,6 @@ comodos_bloqueados_por_vicio = {
 # ---------------------------- #
 # CHECKBOXES DE CÔMODOS        #
 # ---------------------------- #
-
 tk.Label(frame_anomalia, text="Cômodos afetados:").pack()
 
 frame_check = tk.Frame(frame_anomalia)
@@ -470,7 +460,6 @@ combo_vicio.bind("<<ComboboxSelected>>", atualizar_checkboxes_por_vicio)
 # ---------------------------- #
 # FEEDBACK VISUAL              #
 # ---------------------------- #
-
 feedback_timer = None
 
 def mostrar_feedback(mensagem, cor="red", temporario=True):
@@ -491,7 +480,6 @@ def mostrar_feedback(mensagem, cor="red", temporario=True):
 # ---------------------------- #
 # LISTA DE ANOMALIAS           #
 # ---------------------------- #
-
 frame_lista = tk.LabelFrame(frame_conteudo, text="Anomalias adicionadas")
 frame_lista.grid(row=0, column=1, rowspan=2, sticky="n", padx=10, pady=5)
 
@@ -528,7 +516,6 @@ scroll_lista.pack(side="right", fill="y")
 # ---------------------------- #
 # FUNÇÃO ADICIONAR ANOMALIA    #
 # ---------------------------- #
-
 def adicionar_anomalia():
 
     vicio = combo_vicio.get()
@@ -623,7 +610,6 @@ def atualizar_tree():
 # ---------------------------- #
 # FUNÇÃO REMOVER ANOMALIA      #
 # ---------------------------- #
-
 def remover_anomalia():
 
     selecionado = tree_anomalias.selection()
@@ -672,7 +658,6 @@ def remover_todas_anomalias():
 # ---------------------------- #
 # BOTÕES                       #
 # ---------------------------- #
-
 tk.Button(
     frame_anomalia,
     text="Adicionar Anomalia",
@@ -695,7 +680,6 @@ tk.Button(
 # ---------------------------- #
 # ÁREA DE FEEDBACK             #
 # ---------------------------- #
-
 frame_feedback = tk.Frame(frame_principal)
 frame_feedback.pack(pady=(5,0))
 
@@ -711,7 +695,6 @@ feedback_label.pack()
 # ---------------------------- #
 # FUNÇÃO CALCULAR QUANTIDADE   #
 # ---------------------------- #
-
 def ler_float(entry):
 
     valor = entry.get().strip()
@@ -798,7 +781,6 @@ def calcular_subtotal_anomalia(item):
 # ---------------- #
 # NOME DE ARQUIVOS #
 # ---------------- #
-
 def nome_arquivo(texto):
 
     texto = texto.strip()
@@ -826,7 +808,6 @@ def normalizar_texto(texto):
 # ------------------- #
 # ORDEM DO ORÇAMENTO  #
 # ------------------- #
-
 def definir_ordem(anomalia):
     nome = normalizar_texto(anomalia)
 
@@ -841,7 +822,6 @@ def definir_ordem(anomalia):
 # ---------------------------- #
 # GERAR ORÇAMENTO              #
 # ---------------------------- #
-
 def gerar_orcamento():
 
     # para diagnosticar bugs
@@ -1068,7 +1048,6 @@ def gerar_orcamento():
     # ------------ #
     # CALCULAR BDI #
     # ------------ #
-
     bdi_str = entrada_bdi.get().replace(",", ".")
 
     try:
@@ -1093,7 +1072,6 @@ def gerar_orcamento():
     # --------- #
     # EVENTUAIS #
     # --------- #
-
     base_eventuais = total_geral + valor_bdi
     valor_eventuais = base_eventuais * 0.10 if var_eventuais.get() else 0
 
@@ -1112,7 +1090,6 @@ def gerar_orcamento():
     # ------- #
     # ALUGUEL #
     # ------- #
-
     aluguel_str = entrada_aluguel.get().replace(",", ".")
 
     try:
@@ -1135,7 +1112,6 @@ def gerar_orcamento():
     # ----------- #
     # TOTAL FINAL #
     # ----------- #
-
     total_final = total_geral + valor_bdi + valor_eventuais + aluguel
 
     linha_total_final = pd.DataFrame([{
@@ -1186,7 +1162,6 @@ def gerar_orcamento():
 # ---------------------------- #
 # FORMATAR PLANILHA            #
 # ---------------------------- #
-
     wb = load_workbook(arquivo)
     ws = wb.active
 
@@ -1391,6 +1366,22 @@ def gerar_orcamento():
                 cell.fill = fundo_anomalia
                 cell.font = Font(bold=True, size=12)
 
+# Pintar a mensagem de 'Código não encontrado' em vermelho
+        descricao = str(row[1].value)
+        
+        if "Código não encontrado" in descricao:
+            for cell in row:
+                cell.font = Font(
+                name=cell.font.name,
+                size=cell.font.size,
+                bold=cell.font.bold,
+                italic=cell.font.italic,
+                color="FF0000"
+                )
+
+    # ------------------ #
+    # RODAPÉ DA PLANILHA #
+    # ------------------ #
     linha_nota_sinapi = ws.max_row + 1
     estado_planilha = combo_estado.get().strip()
     sufixo_referencia = (
@@ -1413,7 +1404,6 @@ def gerar_orcamento():
 # ---------------------------- #
 # BOTÃO GERAR ORÇAMENTO        #
 # ---------------------------- #
-
 botao_gerar = tk.Button(
     frame_principal,
     text="Gerar Orçamento",
