@@ -1,5 +1,6 @@
 create_venv.bat
 .venv/
+.cursor/
 backup/
 logs/
 scripts antigos/

@@ -321,6 +321,111 @@
         }
 
       ]
+    },
+
+    "Trinca em parede": {
+      "grupo_reparo": "reparo_trincas",
+      "etapas": [
+
+        {
+          "codigo_sinapi": "5318",
+          "unidade": "L",
+          "tipo_calculo": "por_comodo",
+          "coeficiente": 0.12
+        },
+
+        {
+          "codigo_sinapi": "88316",
+          "unidade": "H",
+          "tipo_calculo": "por_comodo",
+          "coeficiente": 1.2
+        },
+
+        {
+          "codigo_sinapi": "97631",
+          "unidade": "m²",
+          "tipo_calculo": "por_comodo",
+          "coeficiente": 1.2
+        },
+
+        {
+          "codigo_sinapi": "87777",
+          "unidade": "m²",
+          "tipo_calculo": "por_comodo",
+          "coeficiente": 1.2
+        },
+
+        {
+          "codigo_sinapi": "34558",
+          "unidade": "m",
+          "tipo_calculo": "por_comodo",
+          "coeficiente": 1.0
+        },
+
+        {
+          "codigo_sinapi": "157",
+          "unidade": "KG",
+          "tipo_calculo": "por_comodo",
+          "coeficiente": 0.35
+        },
+
+        {
+          "codigo_sinapi": "88309",
+          "unidade": "H",
+          "tipo_calculo": "por_comodo",
+          "coeficiente": 1.2
+        },
+
+        {
+          "codigo_sinapi": "43465",
+          "unidade": "H",
+          "tipo_calculo": "por_comodo",
+          "coeficiente": 1.2
+        },
+
+        {
+          "codigo_sinapi": "88485",
+          "unidade": "m²",
+          "tipo_calculo": "area_rev_arg",
+          "coeficiente": 1.0
+        },
+
+        {
+          "codigo_sinapi": "104642",
+          "unidade": "m²",
+          "tipo_calculo": "area_rev_arg",
+          "coeficiente": 1.0
+        }
+
+      ]
+    },
+
+    "Trinca contígua à esquadria": {
+      "grupo_reparo": "reparo_trincas",
+      "etapas": [
+
+        {
+          "codigo_sinapi": "88309",
+          "unidade": "H",
+          "tipo_calculo": "por_comodo",
+          "coeficiente": 2.0
+        },
+
+        {
+          "codigo_sinapi": "157",
+          "unidade": "KG",
+          "tipo_calculo": "por_comodo",
+          "coeficiente": 0.2
+        },
+
+        {
+          "codigo_sinapi": "104642",
+          "unidade": "m²",
+          "tipo_calculo": "area_rev_arg",
+          "coeficiente": 1.0
+        }
+
+      ]
     }
 
   },

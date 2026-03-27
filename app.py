@@ -13,7 +13,7 @@ from datetime import datetime
 # ------------------------------------------- #
 # VERSÃO DO SISTEMA (INTERFACE E EXPORTAÇÕES) #
 # ------------------------------------------- #
-APP_VERSION = "0.9.6.3"
+APP_VERSION = "0.9.6.4"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PASTA_SINAPI_PROCESSADO = os.path.join(BASE_DIR, "sinapi", "sinapi_processado")
@@ -401,10 +401,12 @@ vicios = [
     "Falta de DR",
     "Infiltração pela esquadria",
     "Trinca saindo da janela",
+    "Trinca em parede",
+    "Trinca contígua à esquadria",
     "Trinca na laje percorrendo o eletroduto"
 ]
 
-combo_vicio = ttk.Combobox(frame_anomalia, width=40, values=vicios, state="readonly")
+combo_vicio = ttk.Combobox(frame_anomalia, width=50, values=vicios, state="readonly")
 combo_vicio.pack(pady=5)
 
 comodos_bloqueados_por_vicio = {
