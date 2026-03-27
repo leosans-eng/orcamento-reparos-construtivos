@@ -13,7 +13,7 @@ from datetime import datetime
 # ------------------------------------------- #
 # VERSÃO DO SISTEMA (INTERFACE E EXPORTAÇÕES) #
 # ------------------------------------------- #
-APP_VERSION = "0.9.6.4"
+APP_VERSION = "0.9.7.2"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PASTA_SINAPI_PROCESSADO = os.path.join(BASE_DIR, "sinapi", "sinapi_processado")
@@ -933,6 +933,7 @@ def gerar_orcamento():
 
                 linhas.append({
                     "Anomalia": grupo_reparo,
+                    "Grupo Planilha": etapa.get("grupo_planilha", ""),
                     "Ordem": ordem,
                     "Código SINAPI": codigo,
                     "Descrição do item": descricao,
@@ -983,6 +984,7 @@ def gerar_orcamento():
 
             linhas.append({
                 "Anomalia": item["descricao"],
+                "Grupo Planilha": "",
                 "Ordem": ordem,
                 "Código SINAPI": codigo,
                 "Descrição do item": descricao,
@@ -996,7 +998,7 @@ def gerar_orcamento():
     df = pd.DataFrame(linhas)
 
     df = df.groupby(
-        ["Anomalia", "Código SINAPI", "Descrição do item", "Unid.", "Valor Unit."],
+        ["Anomalia", "Grupo Planilha","Código SINAPI", "Descrição do item", "Unid.", "Valor Unit."],
         as_index=False,
         sort=False
     ).agg({
@@ -1004,43 +1006,57 @@ def gerar_orcamento():
         "Total s/ BDI": "sum"
     })
 
+    def ordem_grupo_planilha(grupo):
+        if grupo == "repintura":
+            return 2
+        return 0
+
     df["Ordem_Execucao"] = df["Anomalia"].apply(definir_ordem)
+    df["Ordem_Grupo"]    = df["Grupo Planilha"].apply(ordem_grupo_planilha)
 
     total_geral = df["Total s/ BDI"].sum()
 
-    df = df.sort_values(["Ordem_Execucao"])
+    df = df.sort_values(["Ordem_Execucao", "Ordem_Grupo"])
 
     linhas_final = []
 
-    for anomalia, grupo in df.groupby("Anomalia", sort=False):
+    # itera na ordem já definida pelo sort_values
+    for _, linha_df in df.iterrows():
 
-        subtotal = grupo["Total s/ BDI"].sum()
+        anomalia     = linha_df["Anomalia"]
+        grupo        = linha_df["Grupo Planilha"]
 
-        titulo = nomes_grupos_reparo.get(anomalia, anomalia)
+        # cabeçalho da seção — só insere quando encontra a primeira linha dela
+        secao_atual = ("repintura" if grupo == "repintura" else anomalia)
 
-        # subtítulo da anomalia
-        linhas_final.append({
-            "Código SINAPI": "",
-            "Descrição do item": titulo.upper(),
-            "Unid.": "",
-            "Qtd.": "",
-            "Valor Unit.": "",
-            "Total s/ BDI": subtotal
-        })
+        if not linhas_final or linhas_final[-1].get("_secao") != secao_atual:
 
-        # itens SINAPI
-        for _, row in grupo.iterrows():
+            if grupo == "repintura":
+                titulo_secao   = "REPINTURA APÓS INTERVENÇÕES"
+                subtotal_secao = df[df["Grupo Planilha"] == "repintura"]["Total s/ BDI"].sum()
+            else:
+                titulo_secao   = nomes_grupos_reparo.get(anomalia, anomalia).upper()
+                subtotal_secao = df[df["Anomalia"] == anomalia]["Total s/ BDI"].sum()
 
             linhas_final.append({
-                "Código SINAPI": row["Código SINAPI"],
-                "Descrição do item": row["Descrição do item"],
-                "Unid.": row["Unid."],
-                "Qtd.": row["Qtd."],
-                "Valor Unit.": row["Valor Unit."],
-                "Total s/ BDI": row["Total s/ BDI"]
+                "_secao":            secao_atual,
+                "Código SINAPI":     "",
+                "Descrição do item": titulo_secao,
+                "Unid.": "", "Qtd.": "", "Valor Unit.": "",
+                "Total s/ BDI":      subtotal_secao
             })
 
-    df = pd.DataFrame(linhas_final)
+        linhas_final.append({
+            "_secao":            secao_atual,
+            "Código SINAPI":     linha_df["Código SINAPI"],
+            "Descrição do item": linha_df["Descrição do item"],
+            "Unid.":             linha_df["Unid."],
+            "Qtd.":              linha_df["Qtd."],
+            "Valor Unit.":       linha_df["Valor Unit."],
+            "Total s/ BDI":      linha_df["Total s/ BDI"]
+        })
+
+    df = pd.DataFrame(linhas_final).drop(columns=["_secao"])
 
     df["Total s/ BDI"] = pd.to_numeric(df["Total s/ BDI"], errors="coerce").fillna(0)
 
