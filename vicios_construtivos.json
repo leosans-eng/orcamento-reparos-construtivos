@@ -220,6 +220,42 @@
       ]
     },
 
+    "Infiltração pela cobertura": {
+      "grupo_reparo": "reparo_umidade_teto",
+      "etapas": [
+
+        {
+          "codigo_sinapi": "88316",
+          "unidade": "H",
+          "tipo_calculo": "por_comodo",
+          "coeficiente": 2.0
+        },
+
+        {
+          "codigo_sinapi": "98546",
+          "unidade": "m²",
+          "tipo_calculo": "area_piso",
+          "coeficiente": 1
+        },
+
+        {
+          "codigo_sinapi": "87769",
+          "unidade": "m²",
+          "tipo_calculo": "area_piso",
+          "coeficiente": 1
+        },
+
+        {
+          "codigo_sinapi": "104640",
+          "unidade": "m²",
+          "tipo_calculo": "area_piso",
+          "coeficiente": 1.0,
+          "grupo_planilha": "repintura"
+        }
+
+      ]
+    },
+
     "Umidade na parede": {
       "grupo_reparo": "reparo_umidade_parede",
       "etapas": [

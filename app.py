@@ -126,6 +126,7 @@ nomes_grupos_reparo = {
     "reparo_azulejos": "Reparo de Azulejos",
     "reparo_trincas": "Intervenção de fissuras e trincas",
     "reparo_esquadrias": "Reparo de infiltrações por esquadrias",
+    "reparo_umidade_teto": "Reparo de umidade no teto",
     "reparo_umidade_parede": "Reparo de umidade na parede",
     "reparo_dr": "Instalação de Dispositivo DR"
 }
@@ -407,6 +408,7 @@ vicios = [
     "Manchas nos azulejos",
     "Falta de DR",
     "Infiltração pela esquadria",
+    "Infiltração pela cobertura",
     "Umidade na parede",
     "Trinca saindo da janela",
     "Trinca em parede",
@@ -832,11 +834,14 @@ def definir_ordem(anomalia):
 
     if "ACOMPANHAMENTO" in nome:
         return 1
+    
+    if "PISOS" in nome or "AZULEJOS" in nome:
+        return 2
 
     if "ENTULHO" in nome or "LIMPEZA" in nome:
-        return 3
+        return 4
 
-    return 2
+    return 3
 
 # ---------------------------- #
 # GERAR ORÇAMENTO              #
