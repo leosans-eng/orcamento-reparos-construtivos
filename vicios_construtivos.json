@@ -220,6 +220,43 @@
       ]
     },
 
+    "Umidade na parede": {
+      "grupo_reparo": "reparo_umidade_parede",
+      "etapas": [
+
+        {
+          "codigo_sinapi": "97631",
+          "unidade": "m²",
+          "tipo_calculo": "area_rev_arg",
+          "coeficiente": 0.125
+        },
+
+        {
+          "codigo_sinapi": "98562",
+          "unidade": "m²",
+          "tipo_calculo": "area_rev_arg",
+          "coeficiente": 0.125
+        },
+
+        {
+          "codigo_sinapi": "88485",
+          "unidade": "m²",
+          "tipo_calculo": "area_rev_arg",
+          "coeficiente": 1.0,
+          "grupo_planilha": "repintura"
+        },
+
+        {
+          "codigo_sinapi": "104642",
+          "unidade": "m²",
+          "tipo_calculo": "area_rev_arg",
+          "coeficiente": 1.0,
+          "grupo_planilha": "repintura"
+        }
+
+      ]
+    },
+
     "Trinca na laje percorrendo o eletroduto": {
       "grupo_reparo": "reparo_trincas",
       "etapas": [
@@ -425,6 +462,29 @@
           "tipo_calculo": "por_comodo",
           "coeficiente": 0.2
         },
+
+        {
+          "codigo_sinapi": "88485",
+          "unidade": "m²",
+          "tipo_calculo": "area_rev_arg",
+          "coeficiente": 1.0,
+          "grupo_planilha": "repintura"
+        },
+
+        {
+          "codigo_sinapi": "104642",
+          "unidade": "m²",
+          "tipo_calculo": "area_rev_arg",
+          "coeficiente": 1.0,
+          "grupo_planilha": "repintura"
+        }
+
+      ]
+    },
+
+    "Pintura de parede": {
+      "grupo_reparo": "repintura",
+      "etapas": [
 
         {
           "codigo_sinapi": "88485",

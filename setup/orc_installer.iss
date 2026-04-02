@@ -1,5 +1,5 @@
 #define MyAppName "ORC"
-#define MyAppVersion "0.9.8.1"
+#define MyAppVersion "0.9.8.4"
 #define MyAppExeName "ORC.exe"
 #define MySourceDir "..\dist\ORC"
 

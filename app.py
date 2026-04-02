@@ -14,7 +14,7 @@ import sys
 # ------------------------------------------- #
 # VERSÃO DO SISTEMA (INTERFACE E EXPORTAÇÕES) #
 # ------------------------------------------- #
-APP_VERSION = "0.9.8.3"
+APP_VERSION = "0.9.8.4"
 
 if getattr(sys, 'frozen', False):
     BASE_DIR = os.path.dirname(sys.executable)
@@ -126,6 +126,7 @@ nomes_grupos_reparo = {
     "reparo_azulejos": "Reparo de Azulejos",
     "reparo_trincas": "Intervenção de fissuras e trincas",
     "reparo_esquadrias": "Reparo de infiltrações por esquadrias",
+    "reparo_umidade_parede": "Reparo de umidade na parede",
     "reparo_dr": "Instalação de Dispositivo DR"
 }
 
@@ -293,7 +294,7 @@ chk_acompanhamento = tk.Checkbutton(
 
 chk_acompanhamento.pack(in_=frame_checkboxes, side="left")
 
-var_eventuais = tk.BooleanVar(value=True)
+var_eventuais = tk.BooleanVar(value=False)
 
 chk_eventuais = tk.Checkbutton(
     frame_dados,
@@ -406,10 +407,12 @@ vicios = [
     "Manchas nos azulejos",
     "Falta de DR",
     "Infiltração pela esquadria",
+    "Umidade na parede",
     "Trinca saindo da janela",
     "Trinca em parede",
     "Trinca contígua à esquadria",
-    "Trinca na laje percorrendo o eletroduto"
+    "Trinca na laje percorrendo o eletroduto",
+    "Pintura de parede"
 ]
 
 combo_vicio = ttk.Combobox(frame_anomalia, width=50, values=vicios, state="readonly")
