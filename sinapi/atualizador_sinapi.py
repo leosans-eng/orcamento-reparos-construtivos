@@ -8,6 +8,7 @@ import zipfile
 import io
 import re
 import json
+from extrair_sinapi import processar_arquivo
 
 # ==========================================
 # PASTAS
@@ -293,6 +294,12 @@ if __name__ == "__main__":
             caminho = baixar_e_extrair(ano, mes)
 
             print(f"OK: {caminho}")
+
+            print("Iniciando processamento...")
+
+            processar_arquivo(caminho)
+
+            print(f"Processamento concluído: {caminho}")
 
         except Exception as e:
 

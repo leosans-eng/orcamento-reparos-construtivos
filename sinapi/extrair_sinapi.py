@@ -26,11 +26,12 @@ def processar_arquivo(caminho_excel, callback=None):
 
     caminho_excel = Path(caminho_excel)
 
-    arquivo = caminho_excel.name
-
     nome_csv = caminho_excel.stem + ".csv"
 
-    caminho_csv = PASTA_PROCESSADO / nome_csv
+    caminho_csv = os.path.join(
+        PASTA_PROCESSADO,
+        nome_csv
+    )
 
     def log(msg):
         print(msg)
@@ -39,7 +40,12 @@ def processar_arquivo(caminho_excel, callback=None):
             callback(msg)
 
     log("\n=================================")
-    log(f"Processando: {arquivo}")
+    log(f"Processando: {caminho_excel.name}")
+
+    if not caminho_excel.exists():
+        raise FileNotFoundError(
+            f"Arquivo não encontrado: {caminho_excel}"
+        )
 
     wb = load_workbook(
         caminho_excel,
@@ -261,7 +267,7 @@ def processar_arquivo(caminho_excel, callback=None):
                     f"{linhas_gravadas} registros gravados"
                 )
 
-    log(f"Arquivo CSV criado: {nome_csv}")
+    log(f"Arquivo CSV criado: {caminho_csv}")
     log(f"Linhas CSD analisadas: {contador}")
     log(f"Linhas ISD analisadas: {linhas_isd}")
     log(f"Registros totais: {linhas_gravadas}")
@@ -270,18 +276,24 @@ def processar_arquivo(caminho_excel, callback=None):
 
     return caminho_csv
 
+# ==========================================
+# EXECUÇÃO DIRETA
+# ==========================================
+
 if __name__ == "__main__":
 
     arquivos_excel = [
-        f for f in PASTA_REFERENCIA.iterdir()
-        if f.suffix.lower() == ".xlsx"
-        and not f.name.startswith("~$")
+        f for f in PASTA_REFERENCIA.glob("*.xlsx")
+        if not f.name.startswith("~$")
     ]
 
     print("Arquivos encontrados:")
 
     for arquivo in arquivos_excel:
-        print(f"- {arquivo.name}")
+        print("-", arquivo.name)
 
     for arquivo in arquivos_excel:
+
         processar_arquivo(arquivo)
+
+    print("\n==========Script concluído.==========")
