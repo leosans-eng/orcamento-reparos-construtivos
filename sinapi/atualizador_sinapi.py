@@ -59,8 +59,12 @@ HEADERS = {
 # PADRÕES
 # ==========================================
 
-PADRAO_ARQUIVO = re.compile(
+PADRAO_CSV = re.compile(
     r"(?i)SINAPI_Refer[eê]ncia_(\d{4})_(\d{2})\.csv$"
+)
+
+PADRAO_XLSX = re.compile(
+    r"(?i)SINAPI_Refer[eê]ncia_(\d{4})_(\d{2})\.xlsx$"
 )
 
 # ==========================================
@@ -80,7 +84,7 @@ def obter_ultima_versao_local():
 
     for arquivo in PASTA_PROCESSADO.glob("*.csv"):
 
-        match = PADRAO_ARQUIVO.match(arquivo.name)
+        match = PADRAO_CSV.match(arquivo.name)
 
         if match:
             ano = int(match.group(1))
@@ -315,7 +319,76 @@ def buscar_atualizacoes():
     })
 
     return [ultima_disponivel]
-    
+
+# ==========================================
+# REMOVE VERSÕES ANTIGAS
+# ==========================================
+
+def limpar_versoes_antigas():
+
+    ultima = obter_ultima_versao_local()
+
+    if ultima is None:
+        return
+
+    ano_mais_recente, mes_mais_recente = ultima
+
+    # -----------------------------
+    # LIMPA CSVs
+    # -----------------------------
+
+    for arquivo in PASTA_PROCESSADO.glob("*.csv"):
+
+        match = PADRAO_CSV.match(arquivo.name)
+
+        if not match:
+            continue
+
+        ano = int(match.group(1))
+        mes = int(match.group(2))
+
+        if (ano, mes) != (ano_mais_recente, mes_mais_recente):
+
+            try:
+                arquivo.unlink()
+
+                print(f"CSV removido: {arquivo.name}")
+
+            except Exception as e:
+
+                print(
+                    f"Erro removendo CSV "
+                    f"{arquivo.name}: {e}"
+                )
+
+    # -----------------------------
+    # LIMPA XLSXs
+    # -----------------------------
+
+    for arquivo in PASTA_REFERENCIA.glob("*.xlsx"):
+
+        match = PADRAO_XLSX.match(arquivo.name)
+
+        if not match:
+            continue
+
+        ano = int(match.group(1))
+        mes = int(match.group(2))
+
+        if (ano, mes) != (ano_mais_recente, mes_mais_recente):
+
+            try:
+                arquivo.unlink()
+
+                print(f"XLSX removido: {arquivo.name}")
+
+            except Exception as e:
+
+                print(
+                    f"Erro removendo XLSX "
+                    f"{arquivo.name}: {e}"
+                )
+
 if __name__ == "__main__":
 
     print("ARQUIVOS ENCONTRADOS:")
@@ -346,6 +419,10 @@ if __name__ == "__main__":
             processar_arquivo(caminho)
 
             print(f"Processamento concluído: {caminho}")
+
+            print("Removendo versões antigas...")
+
+            limpar_versoes_antigas()
 
         except Exception as e:
 
