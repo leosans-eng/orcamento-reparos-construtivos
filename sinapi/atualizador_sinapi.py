@@ -165,6 +165,39 @@ def sinapi_existe(ano, mes):
             )
 
     return False
+# ==========================================
+# ENCONTRA A SINAPI MAIS RECENTE DISPONÍVEL
+# ==========================================
+
+def encontrar_ultima_sinapi_disponivel():
+
+    agora = datetime.now()
+
+    ano = agora.year
+    mes = agora.month
+
+    # procura do mês atual para trás
+    # máximo: 24 meses
+
+    for _ in range(24):
+
+        print(f"Verificando {ano}_{mes:02d}...")
+
+        if sinapi_existe(ano, mes):
+
+            print(f"Encontrada {ano}_{mes:02d}")
+
+            return (ano, mes)
+
+        print(f"Não encontrada {ano}_{mes:02d}")
+
+        mes -= 1
+
+        if mes == 0:
+            mes = 12
+            ano -= 1
+
+    return None
 
 # ==========================================
 # BAIXA E EXTRAI XLSX
@@ -227,48 +260,61 @@ def baixar_e_extrair(ano, mes):
 
 def buscar_atualizacoes():
 
-    ultima = obter_ultima_versao_local()
+    ultima_local = obter_ultima_versao_local()
 
-    if ultima is None:
+    ultima_disponivel = encontrar_ultima_sinapi_disponivel()
+
+    if ultima_disponivel is None:
+
+        print("Nenhuma SINAPI encontrada no servidor.")
+
         return []
 
-    ano, mes = ultima
+    # primeira execução sem CSV
 
-    atualizacoes = []
+    if ultima_local is None:
 
-    agora = datetime.now()
+        print("Nenhuma versão local encontrada.")
 
-    ano_atual = agora.year
-    mes_atual = agora.month
+        salvar_status({
+            "ultima_verificacao": datetime.now().isoformat(),
+            "ultima_versao_local": None,
+            "novas_versoes": [
+                f"{ultima_disponivel[0]}_{ultima_disponivel[1]:02d}"
+            ]
+        })
 
-    while True:
+        return [ultima_disponivel]
 
-        ano, mes = avancar_mes(ano, mes)
+    # já está atualizado
 
-        if (ano, mes) > (ano_atual, mes_atual):
-            break
+    if ultima_disponivel <= ultima_local:
 
-        print(f"Verificando {ano}_{mes:02d}...")
+        print("SINAPI já está atualizada.")
 
-        if sinapi_existe(ano, mes):
+        salvar_status({
+            "ultima_verificacao": datetime.now().isoformat(),
+            "ultima_versao_local": (
+                f"{ultima_local[0]}_{ultima_local[1]:02d}"
+            ),
+            "novas_versoes": []
+        })
 
-            print(f"Encontrada {ano}_{mes:02d}")
+        return []
 
-            atualizacoes.append((ano, mes))
-
-        else:
-
-            print(f"Não encontrada {ano}_{mes:02d}")
+    # existe versão nova
 
     salvar_status({
         "ultima_verificacao": datetime.now().isoformat(),
-        "ultima_versao_local": f"{ultima[0]}_{ultima[1]:02d}",
+        "ultima_versao_local": (
+            f"{ultima_local[0]}_{ultima_local[1]:02d}"
+        ),
         "novas_versoes": [
-            f"{a}_{m:02d}" for a, m in atualizacoes
+            f"{ultima_disponivel[0]}_{ultima_disponivel[1]:02d}"
         ]
     })
 
-    return atualizacoes
+    return [ultima_disponivel]
     
 if __name__ == "__main__":
 
