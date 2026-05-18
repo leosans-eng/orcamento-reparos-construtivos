@@ -21,7 +21,7 @@ from sinapi.extrair_sinapi import processar_arquivo
 # ------------------------------------------- #
 # VERSÃO DO SISTEMA (INTERFACE E EXPORTAÇÕES) #
 # ------------------------------------------- #
-APP_VERSION = "0.9.8.5"
+APP_VERSION = "0.9.8.6"
 
 URL_VERSAO = "https://raw.githubusercontent.com/leosans-eng/orcamento-reparos-construtivos/main/version.json"
 
@@ -98,7 +98,7 @@ def verificar_atualizacao_sinapi():
         recarregar_sinapi()
 
         status_sinapi.set(
-            f"SINAPI atualizada ({sinapi_referencia_rotulo})"
+            f"SINAPI atualizada para ({sinapi_referencia_rotulo})"
         )
 
         atualizar_rodape()
@@ -176,6 +176,25 @@ def obter_csv_sinapi_mais_recente(pasta_processado):
     (ano, mes), caminho, _ = candidatos[0]
     rotulo = f"{mes:02d}/{ano}"
     return caminho, rotulo
+
+
+def carregar_sinapi_por_caminho(caminho, rotulo):
+    global sinapi
+    global caminho_sinapi_carregado
+    global sinapi_referencia_rotulo
+
+    caminho_sinapi_carregado = caminho
+    sinapi_referencia_rotulo = rotulo
+
+    sinapi = pd.read_csv(caminho_sinapi_carregado, dtype={"codigo": str})
+    sinapi.columns = (
+        sinapi.columns
+        .str.strip()
+        .str.lower()
+    )
+
+    return sinapi
+
 
 def informacoes_versao():
     return {
@@ -274,13 +293,16 @@ if caminho_sinapi_carregado is None and os.path.isfile(CAMINHO_FALLBACK_SINAPI):
     sinapi_referencia_rotulo = "arquivo local (sinapi_precos.csv na raiz do projeto)"
 
 if caminho_sinapi_carregado is None:
-    raise SystemExit(
-        "Não foi encontrado CSV SINAPI em sinapi/sinapi_processado "
-        "(padrão: SINAPI_Referência_AAAA_MM.csv) e o arquivo de contingência "
-        f"sinapi_precos.csv não existe em:\n{BASE_DIR}"
+    sinapi = pd.DataFrame(
+        columns=["codigo", "descricao", "unidade", "estado", "custo"]
+    )
+    sinapi_referencia_rotulo = "BASE AUSENTE"
+else:
+    sinapi = carregar_sinapi_por_caminho(
+        caminho_sinapi_carregado,
+        sinapi_referencia_rotulo
     )
 
-sinapi = pd.read_csv(caminho_sinapi_carregado, dtype={"codigo": str})
 
 def recarregar_sinapi():
 
@@ -294,16 +316,26 @@ def recarregar_sinapi():
         )
     )
 
-    sinapi = pd.read_csv(
-        caminho_sinapi_carregado,
-        dtype={"codigo": str}
-    )
+    if caminho_sinapi_carregado is None:
 
-    sinapi.columns = (
-        sinapi.columns
-        .str.strip()
-        .str.lower()
-    )
+        sinapi = pd.DataFrame(
+            columns=["codigo", "descricao", "unidade", "estado", "custo"]
+        )
+
+        sinapi_referencia_rotulo = "BASE AUSENTE"
+
+    else:
+
+        sinapi = pd.read_csv(
+            caminho_sinapi_carregado,
+            dtype={"codigo": str}
+        )
+
+        sinapi.columns = (
+            sinapi.columns
+            .str.strip()
+            .str.lower()
+        )
 
     atualizar_rodape()
 
@@ -337,9 +369,15 @@ label_rodape = tk.Label(
 )
 label_rodape.pack(side="left", anchor="w")
 
+nome_csv_rodape = (
+    f"{os.path.basename(caminho_sinapi_carregado)} ⭠ Arquivo de base"
+    if caminho_sinapi_carregado
+    else "Nenhum arquivo SINAPI carregado"
+)
+
 label_nome_csv_rodape = tk.Label(
     frame_rodape,
-    text=f"{os.path.basename(caminho_sinapi_carregado)} ⭠ Arquivo de base",
+    text=nome_csv_rodape,
     font=("Arial", 8, "bold"),
     fg="#C62828",
     anchor="e",

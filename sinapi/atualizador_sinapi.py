@@ -26,7 +26,7 @@ else:
 PASTA_REFERENCIA = BASE_DIR / "sinapi/sinapi_referencia"
 PASTA_PROCESSADO = BASE_DIR / "sinapi/sinapi_processado"
 
-STATUS_FILE = BASE_DIR / "status.json"
+STATUS_FILE = BASE_DIR / "sinapi/status.json"
 
 PASTA_REFERENCIA.mkdir(parents=True, exist_ok=True)
 PASTA_PROCESSADO.mkdir(parents=True, exist_ok=True)

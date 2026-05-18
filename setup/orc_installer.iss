@@ -1,5 +1,6 @@
 #define MyAppName "ORC"
-#define MyAppVersion "0.9.8.5"
+#define MyAppVersion "0.9.8.6"
+#define MyAppPublisher "Léo Santos"
 #define MyAppExeName "ORC.exe"
 #define MySourceDir "..\dist\ORC"
 
@@ -7,11 +8,12 @@
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 
-AppPublisher=Léo Santos
-VersionInfoCompany=Léo Santos
+AppPublisher={#MyAppPublisher}
+VersionInfoCompany={#MyAppPublisher}
 VersionInfoDescription=Instalador do ORC
-VersionInfoProductName=ORC
+VersionInfoProductName={#MyAppName}
 VersionInfoProductVersion={#MyAppVersion}
+VersionInfoCopyright=© 2026 {#MyAppPublisher}
 
 DefaultDirName=C:\ORC
 DefaultGroupName=ORC
@@ -25,12 +27,19 @@ PrivilegesRequired=admin
 [Languages]
 Name: "portuguese"; MessagesFile: "compiler:Languages\BrazilianPortuguese.isl"
 
+[Tasks]
+Name: "desktopicon"; \
+Description: "Criar atalho na área de trabalho"; \
+GroupDescription: "Atalhos:"
+
 [Files]
-Source: "{#MySourceDir}\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs
+Source: "{#MySourceDir}\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs ignoreversion
 
 [Icons]
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 
 [Run]
-Filename: "{app}\{#MyAppExeName}"; Description: "Abrir ORC"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\{#MyAppExeName}"; \
+Description: "Abrir ORC"; \
+Flags: nowait postinstall skipifsilent
