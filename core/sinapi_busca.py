@@ -102,15 +102,61 @@ def _pontuar_linha(codigo, descricao, grupos, consulta_norm):
     return score
 
 
-def obter_unidades_sinapi(sinapi, estado=None):
-    """Unidades distintas na base, opcionalmente restritas a um estado."""
+def _unidades_do_dataframe(df):
+    if df.empty or "unidade" not in df.columns:
+        return []
+    unidades = df["unidade"].dropna().astype(str).str.strip().unique()
+    return sorted(u for u in unidades if u)
+
+
+def _filtrar_por_consulta(df, consulta, permitir_parcial=True):
+    """
+    Filtra um DataFrame já restrito ao estado.
+    Retorna (resultados, busca_parcial).
+    """
+    texto = consulta.strip()
+    if not texto:
+        return df.iloc[0:0].copy(), False
+
+    if _consulta_parece_codigo(texto):
+        codigo_busca = re.sub(r"\s", "", texto)
+        mask = df["codigo"].astype(str).str.replace(".", "", regex=False).str.contains(
+            codigo_busca, regex=False, na=False
+        )
+        return df[mask].copy(), False
+
+    tokens = tokenizar_consulta(texto)
+    if not tokens:
+        return df.iloc[0:0].copy(), False
+
+    grupos = [expandir_token(t) for t in tokens]
+    descricoes_norm = df["descricao"].astype(str).map(normalizar_texto)
+
+    mascara = _mascara_grupos(descricoes_norm, grupos)
+    resultados = df[mascara].copy()
+    parcial = False
+
+    if resultados.empty and permitir_parcial:
+        mascara_parcial = pd.Series(False, index=descricoes_norm.index)
+        for grupo in grupos:
+            for termo in grupo:
+                mascara_parcial |= descricoes_norm.str.contains(termo, regex=False, na=False)
+        resultados = df[mascara_parcial].copy()
+        parcial = not resultados.empty
+
+    return resultados, parcial
+
+
+def obter_unidades_sinapi(sinapi, estado=None, consulta=None):
+    """Unidades distintas na base, opcionalmente restritas ao estado e à consulta."""
     if sinapi.empty or "unidade" not in sinapi.columns:
         return []
     df = _filtrar_por_estado(sinapi, estado) if estado else sinapi
     if df.empty:
         return []
-    unidades = df["unidade"].dropna().astype(str).str.strip().unique()
-    return sorted(u for u in unidades if u)
+    if consulta and consulta.strip():
+        df, _ = _filtrar_por_consulta(df, consulta)
+    return _unidades_do_dataframe(df)
 
 
 def _filtrar_por_unidade(df, unidade):
@@ -122,12 +168,10 @@ def _filtrar_por_unidade(df, unidade):
     return df[df["unidade"].astype(str).str.strip().str.upper() == alvo].copy()
 
 
-def buscar_sinapi(sinapi, estado, consulta, limite=250, modo_parcial=False, unidade=None):
+def pesquisar_sinapi(sinapi, estado, consulta, unidade=None, limite=250):
     """
-    Busca insumos ou composições SINAPI no DataFrame carregado.
-
-    Retorna (DataFrame resultados, mensagem_status).
-    Pensado para reutilização futura em módulo de composições próprias.
+    Busca insumos/composições em uma única passagem de filtro.
+    Retorna (resultados, mensagem, unidades_disponiveis).
     """
     colunas = list(sinapi.columns) if not sinapi.empty else [
         "codigo", "descricao", "unidade", "estado", "custo",
@@ -136,66 +180,61 @@ def buscar_sinapi(sinapi, estado, consulta, limite=250, modo_parcial=False, unid
 
     df = _filtrar_por_estado(sinapi, estado)
     if df.empty:
-        return vazio, "Nenhum item para o estado selecionado."
+        return vazio, "Nenhum item para o estado selecionado.", []
 
     texto = consulta.strip()
     if not texto:
-        return vazio, "Digite palavras ou o código do insumo ou composição para pesquisar."
-
-    if _consulta_parece_codigo(texto):
-        codigo_busca = re.sub(r"\s", "", texto)
-        mask = df["codigo"].astype(str).str.replace(".", "", regex=False).str.contains(
-            codigo_busca, regex=False, na=False
-        )
-        resultados = _filtrar_por_unidade(df[mask].copy(), unidade)
-        if resultados.empty:
-            sufixo_un = f" na unidade {unidade}" if unidade and unidade != "Todas" else ""
-            return vazio, f"Nenhum insumo ou composição com código contendo “{texto}”{sufixo_un}."
-        return resultados.head(limite), f"{len(resultados.head(limite))} insumo(s) ou composição(ões) encontrado(s)."
+        return vazio, "Digite palavras ou o código do insumo ou composição para pesquisar.", _unidades_do_dataframe(df)
 
     tokens = tokenizar_consulta(texto)
-    if not tokens:
-        return vazio, "Use ao menos uma palavra com 2 ou mais letras."
+    if not _consulta_parece_codigo(texto) and not tokens:
+        return vazio, "Use ao menos uma palavra com 2 ou mais letras.", _unidades_do_dataframe(df)
 
-    grupos = [expandir_token(t) for t in tokens]
-    descricoes_norm = df["descricao"].astype(str).map(normalizar_texto)
-
-    mascara = _mascara_grupos(descricoes_norm, grupos)
-    resultados = df[mascara].copy()
-    mensagem_parcial = ""
-
-    if resultados.empty and not modo_parcial:
-        # Fallback: qualquer token (ou sinônimo) — resultado parcial
-        mascara_parcial = pd.Series(False, index=descricoes_norm.index)
-        for grupo in grupos:
-            for termo in grupo:
-                mascara_parcial |= descricoes_norm.str.contains(termo, regex=False, na=False)
-        resultados = df[mascara_parcial].copy()
-        if not resultados.empty:
-            mensagem_parcial = " (correspondência parcial — nem todas as palavras)"
+    resultados, parcial = _filtrar_por_consulta(df, texto)
+    unidades = _unidades_do_dataframe(resultados)
 
     if resultados.empty:
-        return vazio, "Nenhum insumo ou composição encontrada. Tente sinônimos ou menos palavras."
+        return vazio, "Nenhum insumo ou composição encontrada. Tente sinônimos ou menos palavras.", unidades
 
-    consulta_norm = normalizar_texto(texto)
-    resultados["_score"] = [
-        _pontuar_linha(row["codigo"], row["descricao"], grupos, consulta_norm)
-        for _, row in resultados.iterrows()
-    ]
-    resultados = resultados.sort_values("_score", ascending=False).drop(columns=["_score"])
+    if not _consulta_parece_codigo(texto):
+        consulta_norm = normalizar_texto(texto)
+        grupos = [expandir_token(t) for t in tokens]
+        resultados["_score"] = [
+            _pontuar_linha(row["codigo"], row["descricao"], grupos, consulta_norm)
+            for _, row in resultados.iterrows()
+        ]
+        resultados = resultados.sort_values("_score", ascending=False).drop(columns=["_score"])
+
     resultados = _filtrar_por_unidade(resultados, unidade)
     if resultados.empty:
         sufixo_un = f" na unidade {unidade}" if unidade and unidade != "Todas" else ""
-        return vazio, f"Nenhum insumo ou composição encontrada{sufixo_un}. Tente sinônimos ou menos palavras."
+        return vazio, f"Nenhum insumo ou composição encontrada{sufixo_un}. Tente sinônimos ou menos palavras.", unidades
 
     total = len(resultados)
     exibidos = resultados.head(limite)
-
-    msg = f"{len(exibidos)} de {total} insumo(s) ou composição(ões) encontrada(s){mensagem_parcial}."
+    sufixo_parcial = " (correspondência parcial — nem todas as palavras)" if parcial else ""
+    msg = f"{len(exibidos)} de {total} insumo(s) ou composição(ões) encontrada(s){sufixo_parcial}."
     if total > limite:
         msg += f" Exibindo as {limite} mais relevantes."
 
-    return exibidos, msg
+    return exibidos, msg, unidades
+
+
+def buscar_sinapi(sinapi, estado, consulta, limite=250, modo_parcial=False, unidade=None):
+    """
+    Busca insumos ou composições SINAPI no DataFrame carregado.
+
+    Retorna (DataFrame resultados, mensagem_status).
+    Pensado para reutilização futura em módulo de composições próprias.
+    """
+    resultados, mensagem, _unidades = pesquisar_sinapi(
+        sinapi,
+        estado,
+        consulta,
+        unidade=unidade,
+        limite=limite,
+    )
+    return resultados, mensagem
 
 
 def obter_item_sinapi(sinapi, codigo, estado):

@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 
-from core.sinapi_busca import buscar_sinapi, obter_unidades_sinapi
+from core.sinapi_busca import pesquisar_sinapi, obter_unidades_sinapi
 from ui.widgets import COR_TITULO_PADRAO, criar_botao_voltar
 
 # Debounce proposital (ms): evita rebuscar a cada tecla enquanto o usuário digita.
@@ -82,7 +82,6 @@ class ConsultaSinapiFrame(tk.Frame):
         )
         self.combo_unidade.grid(row=0, column=3, padx=4, pady=4, sticky="w")
         self.combo_unidade.set(UNIDADE_TODAS)
-        self._atualizar_unidades()
 
         tk.Label(linha_filtros, text="Buscar:", bg="#ececec").grid(
             row=0, column=4, padx=(16, 6), pady=4, sticky="w"
@@ -93,17 +92,19 @@ class ConsultaSinapiFrame(tk.Frame):
         self.entrada_busca.grid(row=0, column=5, padx=4, pady=4, sticky="ew")
         linha_filtros.columnconfigure(5, weight=1)
 
+        self._atualizar_unidades()
+
         tk.Label(
             painel_busca,
             text=(
                 "Digite palavras do insumo/composição ou o código SINAPI. "
-                "Acentos são opcionais e não é preciso digitar todas as palavras — "
-                "ex.: “ceramica piso” ou “reboco parede”."
+                "A unidade lista só as opções compatíveis com a busca atual. "
+                "Acentos são opcionais e não é preciso digitar todas as palavras — ex.: “ceramica piso” ou “reboco parede”."
             ),
             font=("Arial", 8),
             fg="#666666",
             bg="#ececec",
-            wraplength=900,
+            wraplength=1000,
             justify="left",
         ).pack(anchor="w", padx=4, pady=(4, 0))
 
@@ -187,16 +188,25 @@ class ConsultaSinapiFrame(tk.Frame):
         valor = self.combo_unidade.get().strip()
         return None if not valor or valor == UNIDADE_TODAS else valor
 
-    def _atualizar_unidades(self):
-        estado = self.combo_estado.get().strip()
-        unidades = obter_unidades_sinapi(self.ctx.sinapi, estado or None)
-        valores = [UNIDADE_TODAS] + unidades
+    def _aplicar_unidades(self, unidades):
+        valores = [UNIDADE_TODAS] + list(unidades)
         atual = self.combo_unidade.get().strip()
         self.combo_unidade["values"] = valores
         if atual in valores:
             self.combo_unidade.set(atual)
         else:
             self.combo_unidade.set(UNIDADE_TODAS)
+
+    def _atualizar_unidades(self, consulta=None):
+        estado = self.combo_estado.get().strip()
+        if consulta is None:
+            consulta = self.var_busca.get() if hasattr(self, "var_busca") else ""
+        texto = consulta
+        if texto and texto.strip():
+            unidades = obter_unidades_sinapi(self.ctx.sinapi, estado or None, texto)
+        else:
+            unidades = obter_unidades_sinapi(self.ctx.sinapi, estado or None)
+        self._aplicar_unidades(unidades)
 
     def _ao_mudar_estado(self, _event=None):
         self._atualizar_unidades()
@@ -233,12 +243,13 @@ class ConsultaSinapiFrame(tk.Frame):
             )
             return
 
-        resultados, mensagem = buscar_sinapi(
+        resultados, mensagem, unidades = pesquisar_sinapi(
             self.ctx.sinapi,
             estado,
             consulta,
             unidade=unidade,
         )
+        self._aplicar_unidades(unidades)
         self._preencher_resultados(resultados)
         cor = "#555555" if not resultados.empty else "#a67c00"
         if "indisponível" in mensagem.lower() or "nenhum item" in mensagem.lower():
