@@ -108,6 +108,7 @@ class OrcApp:
         elif nome == "consulta_sinapi":
             self._frames[nome] = ConsultaSinapiFrame(
                 self.area_conteudo,
+                self.ctx,
                 on_voltar=lambda: self.mostrar_modulo("hub"),
             )
 
@@ -135,6 +136,8 @@ class OrcApp:
 
         if nome == "area_privativa":
             self._frames[nome].ativar_scroll()
+            self._frames[nome].focar()
+        elif nome == "consulta_sinapi":
             self._frames[nome].focar()
 
     def executar(self):
