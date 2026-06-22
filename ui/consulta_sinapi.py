@@ -15,6 +15,7 @@ class ConsultaSinapiFrame(tk.Frame):
         self.ctx = ctx
         self.on_voltar = on_voltar
         self._job_busca = None
+        self._ultima_largura_wrap = 0
         self._montar()
         ctx.registrar_callback_sinapi(self._ao_atualizar_sinapi)
 
@@ -94,7 +95,7 @@ class ConsultaSinapiFrame(tk.Frame):
 
         self._atualizar_unidades()
 
-        tk.Label(
+        self.label_dica = tk.Label(
             painel_busca,
             text=(
                 "Digite palavras do insumo/composição ou o código SINAPI. "
@@ -104,9 +105,9 @@ class ConsultaSinapiFrame(tk.Frame):
             font=("Arial", 8),
             fg="#666666",
             bg="#ececec",
-            wraplength=1200,
             justify="left",
-        ).pack(anchor="w", padx=4, pady=(4, 0))
+        )
+        self.label_dica.pack(fill="x", anchor="w", padx=4, pady=(4, 0))
 
         self.label_status = tk.Label(
             self,
@@ -159,7 +160,6 @@ class ConsultaSinapiFrame(tk.Frame):
             font=("Arial", 9),
             fg="#444444",
             bg="#f5fafc",
-            wraplength=920,
             justify="left",
             anchor="w",
             padx=10,
@@ -167,6 +167,7 @@ class ConsultaSinapiFrame(tk.Frame):
         )
         self.label_detalhe.pack(fill="x")
 
+        self.bind("<Configure>", self._ao_redimensionar)
         self.var_busca.trace_add("write", self._ao_digitar)
         self.combo_estado.bind("<<ComboboxSelected>>", self._ao_mudar_estado)
         self.combo_unidade.bind("<<ComboboxSelected>>", lambda _e: self._executar_busca())
@@ -183,6 +184,24 @@ class ConsultaSinapiFrame(tk.Frame):
         if ref == "BASE AUSENTE":
             return "Base não carregada"
         return f"Referência SINAPI: {ref}"
+
+    def _ao_redimensionar(self, event=None):
+        if event is not None and event.widget is not self:
+            return
+        self.ajustar_layout()
+
+    def ajustar_layout(self):
+        self.update_idletasks()
+        largura = self.winfo_width()
+        if largura < 200:
+            return
+        if largura == self._ultima_largura_wrap:
+            return
+        self._ultima_largura_wrap = largura
+        # Margem horizontal dos painéis (padx 16) + padding interno
+        wrap = max(280, largura - 56)
+        self.label_dica.config(wraplength=wrap)
+        self.label_detalhe.config(wraplength=wrap)
 
     def _unidade_selecionada(self):
         valor = self.combo_unidade.get().strip()
@@ -295,3 +314,4 @@ class ConsultaSinapiFrame(tk.Frame):
 
     def focar(self):
         self.entrada_busca.focus_set()
+        self.after_idle(self.ajustar_layout)
