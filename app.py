@@ -108,6 +108,7 @@ class OrcApp:
         elif nome == "consulta_sinapi":
             self._frames[nome] = ConsultaSinapiFrame(
                 self.area_conteudo,
+                self.ctx,
                 on_voltar=lambda: self.mostrar_modulo("hub"),
             )
 
@@ -123,6 +124,11 @@ class OrcApp:
         ):
             self._frames["area_privativa"].desativar_scroll()
 
+        saindo_consulta = (
+            self._modulo_atual == "consulta_sinapi" and nome != "consulta_sinapi"
+        )
+        entrando_consulta = nome == "consulta_sinapi"
+
         for frame in self._frames.values():
             frame.pack_forget()
 
@@ -133,8 +139,24 @@ class OrcApp:
         self._modulo_atual = nome
         self.janela.title(TITULOS_JANELA.get(nome, TITULOS_JANELA["hub"]))
 
+        if entrando_consulta:
+            try:
+                self.janela.state("zoomed")
+            except tk.TclError:
+                self.janela.attributes("-zoomed", True)
+        elif saindo_consulta:
+            try:
+                self.janela.state("normal")
+            except tk.TclError:
+                self.janela.attributes("-zoomed", False)
+            self.janela.geometry(
+                f"{LARGURA_JANELA_PADRAO}x{ALTURA_JANELA_PADRAO}+200+40"
+            )
+
         if nome == "area_privativa":
             self._frames[nome].ativar_scroll()
+            self._frames[nome].focar()
+        elif nome == "consulta_sinapi":
             self._frames[nome].focar()
 
     def executar(self):
