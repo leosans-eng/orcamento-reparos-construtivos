@@ -3,10 +3,9 @@ from tkinter import ttk
 
 from core.sinapi_busca import pesquisar_sinapi, obter_unidades_sinapi
 from ui.widgets import (
-    COR_TITULO_PADRAO,
     PLACEHOLDER_ESTADO,
     centralizar_janela,
-    criar_botao_voltar,
+    criar_barra_modulo,
     estado_do_combo,
     valores_combo_estado,
 )
@@ -27,29 +26,12 @@ class ConsultaSinapiFrame(tk.Frame):
         ctx.registrar_callback_sinapi(self._ao_atualizar_sinapi)
 
     def _montar(self):
-        barra = tk.Frame(self, bg="#ececec")
-        barra.pack(fill="x", padx=10, pady=(8, 0))
-        criar_botao_voltar(barra, self.on_voltar, bg_parent="#ececec").pack(side="left")
-
-        cabecalho = tk.Frame(self, bg="#ececec")
-        cabecalho.pack(fill="x", padx=16, pady=(12, 8))
-
-        tk.Label(
-            cabecalho,
-            text="Consulta SINAPI",
-            font=("Arial", 14, "bold"),
-            fg=COR_TITULO_PADRAO,
-            bg="#ececec",
-        ).pack(side="left")
-
-        self.label_referencia = tk.Label(
-            cabecalho,
-            text=self._texto_referencia(),
-            font=("Arial", 9),
-            fg="#666666",
-            bg="#ececec",
+        self.label_referencia = criar_barra_modulo(
+            self,
+            "Consulta SINAPI",
+            self.on_voltar,
+            texto_referencia=self._texto_referencia(),
         )
-        self.label_referencia.pack(side="right")
 
         painel_busca = tk.LabelFrame(
             self,

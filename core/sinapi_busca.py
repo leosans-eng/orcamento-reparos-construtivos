@@ -8,7 +8,7 @@ import pandas as pd
 SINONIMOS = {
     "ceramica": ["ceramico", "ceramica", "ceramicos", "porcelanato", "revestimento ceramico"],
     "azulejo": ["azulejo", "azulejos", "pastilha", "pastilhas"],
-    "reboco": ["reboco", "rebocos", "emboco", "emboço", "argamassa de reboco"],
+    "reboco": ["reboco", "rebocos", "emboco", "emboço", "argamassa de reboco", "reboque"],
     "chapisco": ["chapisco", "chapiscos", "emboço", "emboco"],
     "pintura": ["pintura", "pinturas", "tinta", "pintar", "latex", "látex"],
     "alvenaria": ["alvenaria", "alvenarias", "tijolo", "tijolos", "bloco", "blocos"],

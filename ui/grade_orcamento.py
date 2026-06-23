@@ -7,11 +7,11 @@ COLUNAS = (
     ("item", "Item", 52, "center", 0),
     ("codigo", "Código", 72, "center", 0),
     ("descricao", "Descrição", 180, "w", 1),
-    ("quantidade", "Qtd.", 64, "e", 0),
-    ("unidade", "Unid.", 48, "center", 0),
-    ("custo_unit", "Custo unit.", 92, "e", 0),
-    ("custo_bdi", "Custo c/ BDI", 92, "e", 0),
-    ("total", "Total", 96, "e", 0),
+    ("quantidade", "Qtd.", 64, "w", 0),
+    ("unidade", "Unid.", 48, "w", 0),
+    ("custo_unit", "Custo unit.", 92, "w", 0),
+    ("custo_bdi", "Custo c/ BDI", 92, "w", 0),
+    ("total", "Total", 96, "center", 0),
 )
 
 COR_FUNDO = "#ffffff"

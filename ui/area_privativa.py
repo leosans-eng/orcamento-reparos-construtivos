@@ -10,7 +10,7 @@ from openpyxl import load_workbook
 from openpyxl.styles import Alignment, Border, Side, Font, PatternFill
 
 from core.app_state import ALTURA_TREE_MIN, LARGURA_JANELA_PADRAO, NOMES_GRUPOS_REPARO
-from ui.widgets import criar_botao_voltar
+from ui.widgets import criar_barra_modulo
 
 
 def criar_area_privativa(parent, ctx, on_voltar):
@@ -21,9 +21,7 @@ def criar_area_privativa(parent, ctx, on_voltar):
 
     wrapper = tk.Frame(parent)
 
-    barra = tk.Frame(wrapper, bg="#ececec")
-    barra.pack(fill="x", padx=10, pady=(8, 0))
-    criar_botao_voltar(barra, on_voltar, bg_parent="#ececec").pack(side="left")
+    criar_barra_modulo(wrapper, "Área Privativa", on_voltar)
 
     # SCROLL DA JANELA             #
     # ---------------------------- #
