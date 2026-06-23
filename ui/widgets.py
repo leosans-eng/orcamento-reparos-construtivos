@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter import ttk
 
 COR_BORDA_PADRAO = "#006699"
 COR_BORDA_HOVER = "#004466"
@@ -32,6 +33,152 @@ def centralizar_janela(janela, parent=None):
         x = (janela.winfo_screenwidth() - largura) // 2
         y = (janela.winfo_screenheight() - altura) // 2
     janela.geometry(f"+{max(0, x)}+{max(0, y)}")
+
+
+def centralizar_janela_principal(janela, largura, altura):
+    janela.update_idletasks()
+    x = (janela.winfo_screenwidth() - largura) // 2
+    y = (janela.winfo_screenheight() - altura) // 2
+    janela.geometry(f"{largura}x{altura}+{max(0, x)}+{max(0, y)}")
+
+
+def _configurar_botao_colorido(style, nome, *, background, active, pressed, padding):
+    style.configure(
+        nome,
+        background=background,
+        foreground="black",
+        borderwidth=1,
+        focuscolor="none",
+        padding=padding,
+    )
+    style.map(
+        nome,
+        background=[("active", active), ("pressed", pressed)],
+        foreground=[("active", "black"), ("pressed", "black")],
+    )
+
+
+def configurar_estilos_ttk(root):
+    """Estilos achatados de botões (mesmo padrão do Gerador de Relatórios Fotográficos)."""
+    if getattr(root, "_orc_estilos_ttk", False):
+        return
+    style = ttk.Style(root)
+    try:
+        style.theme_use("")
+    except tk.TclError:
+        pass
+
+    for nome, bg, active, pressed, padding in (
+        ("Add.TButton", "#2e7d32", "#43a047", "#1b5e20", (8, 3)),
+        ("Add.Compact.TButton", "#2e7d32", "#43a047", "#1b5e20", (4, 1)),
+        ("Delete.TButton", "#c62828", "#e53935", "#b71c1c", (8, 3)),
+        ("Delete.Compact.TButton", "#c62828", "#e53935", "#b71c1c", (4, 1)),
+        ("Edit.TButton", "#1565c0", "#1976d2", "#0d47a1", (8, 3)),
+        ("Edit.Compact.TButton", "#1565c0", "#1976d2", "#0d47a1", (4, 1)),
+        ("Accent.TButton", "#e65100", "#f57c00", "#bf360c", (8, 3)),
+        ("Accent.Compact.TButton", "#e65100", "#f57c00", "#bf360c", (4, 1)),
+        ("Save.TButton", "#2e7d32", "#43a047", "#1b5e20", (8, 3)),
+    ):
+        _configurar_botao_colorido(
+            style, nome, background=bg, active=active, pressed=pressed, padding=padding
+        )
+
+    style.configure(
+        "Secondary.TButton",
+        background="#eceff1",
+        foreground="#37474f",
+        borderwidth=1,
+        focuscolor="none",
+        padding=(8, 3),
+    )
+    style.map(
+        "Secondary.TButton",
+        background=[("active", "#cfd8dc"), ("pressed", "#b0bec5")],
+        foreground=[("active", "#263238"), ("pressed", "#263238")],
+    )
+    style.configure("Compact.TButton", padding=(4, 1))
+    style.configure(
+        "Secondary.Compact.TButton",
+        background="#eceff1",
+        foreground="#37474f",
+        borderwidth=1,
+        focuscolor="none",
+        padding=(4, 1),
+    )
+    style.map(
+        "Secondary.Compact.TButton",
+        background=[("active", "#cfd8dc"), ("pressed", "#b0bec5")],
+        foreground=[("active", "#263238"), ("pressed", "#263238")],
+    )
+    root._orc_estilos_ttk = True
+
+
+def confirmar_exclusao_com_espera(
+    parent,
+    titulo,
+    mensagem,
+    texto_confirmar,
+    segundos=5,
+    estilo_confirmar="Delete.TButton",
+):
+    """Diálogo de exclusão com contagem regressiva antes de habilitar a confirmação."""
+    dialog = tk.Toplevel(parent)
+    dialog.title(titulo)
+    dialog.transient(parent)
+    dialog.grab_set()
+    dialog.resizable(False, False)
+
+    resultado = {"confirmed": False}
+    restante = segundos
+    timer_id = [None]
+
+    frame = ttk.Frame(dialog, padding=16)
+    frame.pack(fill="both", expand=True)
+
+    ttk.Label(frame, text=mensagem, wraplength=380, justify="center").pack(pady=(0, 12))
+
+    countdown_var = tk.StringVar(value=f"Aguarde {restante}s para confirmar...")
+    ttk.Label(frame, textvariable=countdown_var, foreground="#c62828").pack(pady=(0, 12))
+
+    botoes = ttk.Frame(frame)
+    botoes.pack(fill="x")
+
+    def cancelar():
+        if timer_id[0] is not None:
+            dialog.after_cancel(timer_id[0])
+        dialog.destroy()
+
+    def confirmar():
+        resultado["confirmed"] = True
+        cancelar()
+
+    btn_confirmar = ttk.Button(
+        botoes,
+        text=texto_confirmar,
+        command=confirmar,
+        state="disabled",
+        style=estilo_confirmar,
+    )
+    ttk.Button(botoes, text="Cancelar", command=cancelar, style="Secondary.TButton").pack(
+        side="right", padx=(6, 0)
+    )
+    btn_confirmar.pack(side="right")
+
+    def tick():
+        nonlocal restante
+        restante -= 1
+        if restante > 0:
+            countdown_var.set(f"Aguarde {restante}s para confirmar...")
+            timer_id[0] = dialog.after(1000, tick)
+        else:
+            countdown_var.set("")
+            btn_confirmar.config(state="normal")
+
+    timer_id[0] = dialog.after(1000, tick)
+    dialog.protocol("WM_DELETE_WINDOW", cancelar)
+    centralizar_janela(dialog, parent)
+    parent.wait_window(dialog)
+    return bool(resultado["confirmed"])
 
 
 def _ponteiro_dentro(widget):

@@ -29,6 +29,7 @@ from ui.widgets import (
     COR_TITULO_PADRAO,
     PLACEHOLDER_ESTADO,
     centralizar_janela,
+    confirmar_exclusao_com_espera,
     criar_botao_voltar,
     estado_do_combo,
     valores_combo_estado,
@@ -62,23 +63,6 @@ def _formatar_bdi(valor):
         return texto
     except (TypeError, ValueError):
         return str(valor)
-
-
-def _criar_botao_acao(parent, texto, comando, cor_fundo, cor_texto="#ffffff"):
-    btn = tk.Button(
-        parent,
-        text=texto,
-        command=comando,
-        bg=cor_fundo,
-        fg=cor_texto,
-        activebackground=cor_fundo,
-        activeforeground=cor_texto,
-        relief="flat",
-        padx=12,
-        pady=4,
-        cursor="hand2",
-    )
-    return btn
 
 
 class DialogoEditarQuantidade(tk.Toplevel):
@@ -129,10 +113,14 @@ class DialogoEditarQuantidade(tk.Toplevel):
         entrada.bind("<Return>", lambda _e: self._confirmar())
         entrada.bind("<Escape>", lambda _e: self.destroy())
 
-        botoes = tk.Frame(painel, bg="#ececec")
+        botoes = ttk.Frame(painel)
         botoes.pack(fill="x")
-        _criar_botao_acao(botoes, "Cancelar", self.destroy, "#C62828").pack(side="left")
-        _criar_botao_acao(botoes, "Confirmar", self._confirmar, "#2E7D32").pack(side="right")
+        ttk.Button(botoes, text="Cancelar", command=self.destroy, style="Delete.TButton").pack(
+            side="left"
+        )
+        ttk.Button(botoes, text="Confirmar", command=self._confirmar, style="Add.TButton").pack(
+            side="right"
+        )
 
         self.bind("<Escape>", lambda _e: self.destroy())
         self.update_idletasks()
@@ -268,31 +256,31 @@ class DialogoBuscaSinapi(tk.Toplevel):
         rodape.pack(fill="x")
         rodape.columnconfigure(1, weight=1)
 
-        _criar_botao_acao(rodape, "Cancelar", self.destroy, "#C62828").grid(
+        ttk.Button(rodape, text="Cancelar", command=self.destroy, style="Delete.TButton").grid(
             row=0, column=0, sticky="w"
         )
 
         frame_dir = tk.Frame(rodape, bg="#ececec")
         frame_dir.grid(row=0, column=2, sticky="e")
         if self.fechar_unico:
-            _criar_botao_acao(
+            ttk.Button(
                 frame_dir,
-                self.texto_confirmar,
-                lambda: self._confirmar(fechar=True),
-                "#2E7D32",
+                text=self.texto_confirmar,
+                command=lambda: self._confirmar(fechar=True),
+                style="Add.TButton",
             ).pack(side="left")
         else:
-            _criar_botao_acao(
+            ttk.Button(
                 frame_dir,
-                self.texto_confirmar,
-                lambda: self._confirmar(fechar=False),
-                "#2E7D32",
+                text=self.texto_confirmar,
+                command=lambda: self._confirmar(fechar=False),
+                style="Add.TButton",
             ).pack(side="left", padx=(0, 8))
-            _criar_botao_acao(
+            ttk.Button(
                 frame_dir,
-                self.texto_confirmar_fechar,
-                lambda: self._confirmar(fechar=True),
-                "#388E3C",
+                text=self.texto_confirmar_fechar,
+                command=lambda: self._confirmar(fechar=True),
+                style="Save.TButton",
             ).pack(side="left")
 
         self.var_busca.trace_add("write", self._ao_digitar)
@@ -476,78 +464,79 @@ class OrcamentoCustomizadoFrame(tk.Frame):
         )
         linha_orc.pack(fill="x", padx=4, pady=(0, 8))
 
-        linha_sel = tk.Frame(linha_orc, bg="#ececec")
-        linha_sel.pack(fill="x", pady=(0, 6))
+        linha_salvo = tk.Frame(linha_orc, bg="#ececec")
+        linha_salvo.pack(fill="x")
 
-        tk.Label(linha_sel, text="Selecionar:", bg="#ececec").pack(side="left")
+        tk.Label(linha_salvo, text="Selecionar:", bg="#ececec").pack(side="left")
         self.combo_orcamento = ttk.Combobox(
-            linha_sel, width=36, state="readonly"
+            linha_salvo, width=22, state="readonly"
         )
-        self.combo_orcamento.pack(side="left", padx=(6, 12))
+        self.combo_orcamento.pack(side="left", padx=(4, 8))
         self.combo_orcamento.bind("<<ComboboxSelected>>", self._ao_trocar_orcamento)
 
-        linha_acoes_orc = tk.Frame(linha_orc, bg="#ececec")
-        linha_acoes_orc.pack(fill="x")
+        ttk.Button(
+            linha_salvo,
+            text="Adicionar orçamento",
+            command=self._adicionar_orcamento,
+            style="Add.Compact.TButton",
+        ).pack(side="left", padx=(0, 4))
+        ttk.Button(
+            linha_salvo,
+            text="Editar nome do orçamento",
+            command=self._renomear_orcamento,
+            style="Edit.Compact.TButton",
+        ).pack(side="left", padx=(0, 4))
+        ttk.Button(
+            linha_salvo,
+            text="Excluir orçamento",
+            command=self._excluir_orcamento,
+            style="Delete.Compact.TButton",
+        ).pack(side="left", padx=(0, 12))
 
-        _criar_botao_acao(
-            linha_acoes_orc,
-            "Adicionar orçamento",
-            self._adicionar_orcamento,
-            "#2E7D32",
-        ).pack(side="left", padx=(0, 8))
-        _criar_botao_acao(
-            linha_acoes_orc,
-            "Editar nome do orçamento",
-            self._renomear_orcamento,
-            "#1565C0",
-        ).pack(side="left", padx=(0, 8))
-        _criar_botao_acao(
-            linha_acoes_orc,
-            "Excluir orçamento",
-            self._excluir_orcamento,
-            "#C62828",
-        ).pack(side="left")
-
-        linha_param = tk.Frame(conteudo, bg="#ececec")
-        linha_param.pack(fill="x", padx=4, pady=(0, 6))
-
-        tk.Label(linha_param, text="Estado:", bg="#ececec").pack(side="left")
+        tk.Label(linha_salvo, text="Estado:", bg="#ececec").pack(side="left")
         estados = self.ctx.obter_estados()
         self.combo_estado = ttk.Combobox(
-            linha_param, values=valores_combo_estado(estados), width=14, state="readonly"
+            linha_salvo, values=valores_combo_estado(estados), width=12, state="readonly"
         )
-        self.combo_estado.pack(side="left", padx=(6, 16))
+        self.combo_estado.pack(side="left", padx=(4, 10))
         self.combo_estado.bind("<<ComboboxSelected>>", self._ao_mudar_estado)
 
-        tk.Label(linha_param, text="BDI (%):", bg="#ececec").pack(side="left")
+        tk.Label(linha_salvo, text="BDI (%):", bg="#ececec").pack(side="left")
         self.var_bdi = tk.StringVar(value=_formatar_bdi(BDI_PADRAO))
         self.var_bdi.trace_add("write", self._ao_alterar_bdi)
-        ttk.Entry(linha_param, textvariable=self.var_bdi, width=8).pack(side="left", padx=(6, 0))
+        ttk.Entry(linha_salvo, textvariable=self.var_bdi, width=7).pack(side="left", padx=(4, 0))
 
         linha_botoes = tk.Frame(conteudo, bg="#ececec")
         linha_botoes.pack(fill="x", padx=4, pady=(0, 8))
 
-        ttk.Button(linha_botoes, text="Nova etapa", command=self._novo_grupo).pack(
-            side="left", padx=(0, 6)
-        )
         ttk.Button(
-            linha_botoes, text="Remover selecionado", command=self._remover_selecionado
-        ).pack(side="left", padx=(0, 6))
-        _criar_botao_acao(
+            linha_botoes, text="Nova etapa", command=self._novo_grupo, style="Compact.TButton"
+        ).pack(side="left", padx=(0, 4))
+        ttk.Button(
             linha_botoes,
-            "Editar item",
-            self._editar_item_sinapi,
-            "#E65100",
-        ).pack(side="left", padx=(0, 16))
+            text="Remover selecionado",
+            command=self._remover_selecionado,
+            style="Compact.TButton",
+        ).pack(side="left", padx=(0, 4))
+        ttk.Button(
+            linha_botoes,
+            text="Editar item",
+            command=self._editar_item_sinapi,
+            style="Accent.Compact.TButton",
+        ).pack(side="left", padx=(0, 12))
 
         ttk.Button(
-            linha_botoes, text="Inserir item SINAPI", command=self._abrir_busca_sinapi
-        ).pack(side="left", padx=(0, 6))
+            linha_botoes,
+            text="Inserir item SINAPI",
+            command=self._abrir_busca_sinapi,
+            style="Compact.TButton",
+        ).pack(side="left", padx=(0, 4))
         ttk.Button(
             linha_botoes,
             text="Inserir composição PRÓPRIA",
             command=self._adicionar_composicao_propria,
-        ).pack(side="left", padx=(0, 16))
+            style="Compact.TButton",
+        ).pack(side="left", padx=(0, 12))
 
         tk.Label(linha_botoes, text="Inserir rápido — Cód.:", bg="#ececec").pack(side="left")
         self.var_codigo_rapido = tk.StringVar()
@@ -557,9 +546,9 @@ class OrcamentoCustomizadoFrame(tk.Frame):
         self.var_qtd_rapido = tk.StringVar(value="1")
         entrada_qtd = ttk.Entry(linha_botoes, textvariable=self.var_qtd_rapido, width=8)
         entrada_qtd.pack(side="left", padx=(4, 8))
-        ttk.Button(linha_botoes, text="Inserir", command=self._inserir_rapido).pack(
-            side="left"
-        )
+        ttk.Button(
+            linha_botoes, text="Inserir", command=self._inserir_rapido, style="Compact.TButton"
+        ).pack(side="left")
         entrada_cod.bind("<Return>", lambda _e: self._inserir_rapido())
         entrada_qtd.bind("<Return>", lambda _e: self._inserir_rapido())
 
@@ -706,10 +695,11 @@ class OrcamentoCustomizadoFrame(tk.Frame):
             messagebox.showwarning("Orçamento", str(exc), parent=self.winfo_toplevel())
 
     def _excluir_orcamento(self):
-        if not messagebox.askyesno(
+        if not confirmar_exclusao_com_espera(
+            self.winfo_toplevel(),
             "Excluir orçamento",
             f"Excluir o orçamento \"{self.orcamento.nome}\"?\nEsta ação não pode ser desfeita.",
-            parent=self.winfo_toplevel(),
+            "Excluir orçamento",
         ):
             return
         try:

@@ -12,6 +12,7 @@ from ui.area_privativa import criar_area_privativa
 from ui.consulta_sinapi import ConsultaSinapiFrame
 from ui.hub import HubFrame
 from ui.orcamento_customizado import OrcamentoCustomizadoFrame
+from ui.widgets import centralizar_janela_principal, configurar_estilos_ttk
 
 TITULOS_JANELA = {
     "hub": "ORC — Orçamentos de Reparos Construtivos",
@@ -29,12 +30,13 @@ class OrcApp:
 
         self.janela = tk.Tk()
         self.ctx.janela = self.janela
+        configurar_estilos_ttk(self.janela)
 
         self.janela.title(TITULOS_JANELA["hub"])
-        self.janela.geometry(
-            f"{LARGURA_JANELA_PADRAO}x{ALTURA_JANELA_PADRAO}+200+40"
-        )
         self.janela.minsize(860, 520)
+        centralizar_janela_principal(
+            self.janela, LARGURA_JANELA_PADRAO, ALTURA_JANELA_PADRAO
+        )
 
         icone = icon_path()
         if icone is not None:
@@ -159,11 +161,15 @@ class OrcApp:
                 self.janela.state("normal")
             except tk.TclError:
                 self.janela.attributes("-zoomed", False)
-            self.janela.geometry(
-                f"{LARGURA_JANELA_PADRAO}x{ALTURA_JANELA_PADRAO}+200+40"
+            centralizar_janela_principal(
+                self.janela, LARGURA_JANELA_PADRAO, ALTURA_JANELA_PADRAO
             )
 
-        if nome == "area_privativa":
+        if nome == "hub":
+            centralizar_janela_principal(
+                self.janela, LARGURA_JANELA_PADRAO, ALTURA_JANELA_PADRAO
+            )
+        elif nome == "area_privativa":
             self._frames[nome].ativar_scroll()
             self._frames[nome].focar()
         elif nome in ("consulta_sinapi", "orcamento_customizado"):
