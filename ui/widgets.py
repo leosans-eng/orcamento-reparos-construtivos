@@ -7,6 +7,32 @@ COR_FUNDO_HOVER = "#f5fafc"
 COR_TITULO_PADRAO = "#006699"
 COR_TITULO_HOVER = "#004466"
 
+PLACEHOLDER_ESTADO = "— Selecione —"
+
+
+def valores_combo_estado(estados):
+    return [PLACEHOLDER_ESTADO] + list(estados)
+
+
+def estado_do_combo(valor):
+    texto = (valor or "").strip()
+    if not texto or texto == PLACEHOLDER_ESTADO:
+        return ""
+    return texto
+
+
+def centralizar_janela(janela, parent=None):
+    janela.update_idletasks()
+    largura = janela.winfo_width()
+    altura = janela.winfo_height()
+    if parent is not None and parent.winfo_exists():
+        x = parent.winfo_rootx() + (parent.winfo_width() - largura) // 2
+        y = parent.winfo_rooty() + (parent.winfo_height() - altura) // 2
+    else:
+        x = (janela.winfo_screenwidth() - largura) // 2
+        y = (janela.winfo_screenheight() - altura) // 2
+    janela.geometry(f"+{max(0, x)}+{max(0, y)}")
+
 
 def _ponteiro_dentro(widget):
     x, y = widget.winfo_pointerx(), widget.winfo_pointery()

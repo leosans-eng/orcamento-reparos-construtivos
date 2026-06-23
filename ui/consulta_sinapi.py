@@ -2,7 +2,14 @@ import tkinter as tk
 from tkinter import ttk
 
 from core.sinapi_busca import pesquisar_sinapi, obter_unidades_sinapi
-from ui.widgets import COR_TITULO_PADRAO, criar_botao_voltar
+from ui.widgets import (
+    COR_TITULO_PADRAO,
+    PLACEHOLDER_ESTADO,
+    centralizar_janela,
+    criar_botao_voltar,
+    estado_do_combo,
+    valores_combo_estado,
+)
 
 # Debounce proposital (ms): evita rebuscar a cada tecla enquanto o usuário digita.
 DEBOUNCE_BUSCA_MS = 300
@@ -63,13 +70,12 @@ class ConsultaSinapiFrame(tk.Frame):
         estados = self.ctx.obter_estados()
         self.combo_estado = ttk.Combobox(
             linha_filtros,
-            values=estados,
-            width=8,
+            values=valores_combo_estado(estados),
+            width=14,
             state="readonly",
         )
         self.combo_estado.grid(row=0, column=1, padx=4, pady=4, sticky="w")
-        if estados:
-            self.combo_estado.set("SP" if "SP" in estados else estados[0])
+        self.combo_estado.set(PLACEHOLDER_ESTADO)
 
         tk.Label(linha_filtros, text="Unidade:", bg="#ececec").grid(
             row=0, column=2, padx=(16, 6), pady=4, sticky="w"
@@ -217,7 +223,7 @@ class ConsultaSinapiFrame(tk.Frame):
             self.combo_unidade.set(UNIDADE_TODAS)
 
     def _atualizar_unidades(self, consulta=None):
-        estado = self.combo_estado.get().strip()
+        estado = estado_do_combo(self.combo_estado.get())
         if consulta is None:
             consulta = self.var_busca.get() if hasattr(self, "var_busca") else ""
         texto = consulta
@@ -233,9 +239,9 @@ class ConsultaSinapiFrame(tk.Frame):
 
     def _ao_atualizar_sinapi(self):
         estados = self.ctx.obter_estados()
-        self.combo_estado["values"] = estados
-        if estados and self.combo_estado.get() not in estados:
-            self.combo_estado.set("SP" if "SP" in estados else estados[0])
+        self.combo_estado["values"] = valores_combo_estado(estados)
+        if self.combo_estado.get() not in self.combo_estado["values"]:
+            self.combo_estado.set(PLACEHOLDER_ESTADO)
         self._atualizar_unidades()
         self.label_referencia.config(text=self._texto_referencia())
         if self.var_busca.get().strip():
@@ -251,7 +257,7 @@ class ConsultaSinapiFrame(tk.Frame):
             self.after_cancel(self._job_busca)
             self._job_busca = None
 
-        estado = self.combo_estado.get().strip()
+        estado = estado_do_combo(self.combo_estado.get())
         consulta = self.var_busca.get()
         unidade = self._unidade_selecionada()
 
@@ -304,7 +310,7 @@ class ConsultaSinapiFrame(tk.Frame):
         if len(valores) < 4:
             return
         codigo, descricao, unidade, custo = valores
-        estado = self.combo_estado.get().strip()
+        estado = estado_do_combo(self.combo_estado.get())
         self.label_detalhe.config(
             text=(
                 f"Código: {codigo}  ·  Estado: {estado}  ·  Unidade: {unidade}  ·  "

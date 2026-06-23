@@ -14,7 +14,14 @@ from core.orcamento_customizado import (
     subtotal_item,
 )
 from core.sinapi_busca import obter_item_sinapi, obter_unidades_sinapi, pesquisar_sinapi
-from ui.widgets import COR_TITULO_PADRAO, criar_botao_voltar
+from ui.widgets import (
+    COR_TITULO_PADRAO,
+    PLACEHOLDER_ESTADO,
+    centralizar_janela,
+    criar_botao_voltar,
+    estado_do_combo,
+    valores_combo_estado,
+)
 
 DEBOUNCE_BUSCA_MS = 250
 UNIDADE_TODAS = "Todas"
@@ -48,12 +55,91 @@ def _formatar_bdi(valor):
         return str(valor)
 
 
-def _quebrar_descricao(texto, largura_px):
+def _linhas_descricao(texto, largura_px):
     if not texto:
-        return ""
+        return [""]
     chars = max(24, largura_px // 7)
     linhas = textwrap.wrap(str(texto), width=chars, break_long_words=False)
-    return "\n".join(linhas) if linhas else str(texto)
+    return linhas if linhas else [str(texto)]
+
+
+def _criar_botao_acao(parent, texto, comando, cor_fundo, cor_texto="#ffffff"):
+    btn = tk.Button(
+        parent,
+        text=texto,
+        command=comando,
+        bg=cor_fundo,
+        fg=cor_texto,
+        activebackground=cor_fundo,
+        activeforeground=cor_texto,
+        relief="flat",
+        padx=12,
+        pady=4,
+        cursor="hand2",
+    )
+    return btn
+
+
+class DialogoEditarQuantidade(tk.Toplevel):
+    def __init__(self, parent, descricao_item, quantidade_atual, on_confirmar):
+        super().__init__(parent)
+        self.on_confirmar = on_confirmar
+        self.title("Editar quantidade")
+        self.configure(bg="#ececec")
+        self.transient(parent)
+        self.grab_set()
+        self.resizable(False, False)
+
+        largura_wrap = min(560, max(280, parent.winfo_screenwidth() - 120))
+
+        painel = tk.Frame(self, bg="#ececec", padx=16, pady=14)
+        painel.pack(fill="both", expand=True)
+
+        tk.Label(
+            painel,
+            text="Item:",
+            font=("Arial", 9, "bold"),
+            fg="#444444",
+            bg="#ececec",
+            anchor="w",
+        ).pack(fill="x")
+
+        tk.Label(
+            painel,
+            text=descricao_item,
+            font=("Arial", 9),
+            fg="#333333",
+            bg="#f5fafc",
+            justify="left",
+            anchor="w",
+            wraplength=largura_wrap,
+            padx=8,
+            pady=8,
+        ).pack(fill="x", pady=(4, 12))
+
+        linha_qtd = tk.Frame(painel, bg="#ececec")
+        linha_qtd.pack(fill="x", pady=(0, 12))
+        tk.Label(linha_qtd, text="Nova quantidade:", bg="#ececec").pack(side="left")
+        self.var_quantidade = tk.StringVar(value=_formatar_quantidade(quantidade_atual))
+        entrada = ttk.Entry(linha_qtd, textvariable=self.var_quantidade, width=14)
+        entrada.pack(side="left", padx=(8, 0))
+        entrada.focus_set()
+        entrada.select_range(0, "end")
+        entrada.bind("<Return>", lambda _e: self._confirmar())
+        entrada.bind("<Escape>", lambda _e: self.destroy())
+
+        botoes = tk.Frame(painel, bg="#ececec")
+        botoes.pack(fill="x")
+        _criar_botao_acao(botoes, "Cancelar", self.destroy, "#C62828").pack(side="left")
+        _criar_botao_acao(botoes, "Confirmar", self._confirmar, "#2E7D32").pack(side="right")
+
+        self.bind("<Escape>", lambda _e: self.destroy())
+        self.update_idletasks()
+        centralizar_janela(self, parent)
+
+    def _confirmar(self):
+        self.on_confirmar(self.var_quantidade.get())
+        self.destroy()
 
 
 class DialogoBuscaSinapi(tk.Toplevel):
@@ -62,6 +148,7 @@ class DialogoBuscaSinapi(tk.Toplevel):
         self.ctx = ctx
         self.on_confirmar = on_confirmar
         self._job_busca = None
+        self._parent = parent
 
         self.title("Buscar na SINAPI")
         self.geometry("820x520")
@@ -73,6 +160,8 @@ class DialogoBuscaSinapi(tk.Toplevel):
         self._montar(estado_inicial)
         self.protocol("WM_DELETE_WINDOW", self.destroy)
         self.bind("<Escape>", lambda _e: self.destroy())
+        self.update_idletasks()
+        centralizar_janela(self, parent)
 
     def _montar(self, estado_inicial):
         painel = tk.Frame(self, bg="#ececec", padx=12, pady=10)
@@ -86,13 +175,17 @@ class DialogoBuscaSinapi(tk.Toplevel):
         )
         estados = self.ctx.obter_estados()
         self.combo_estado = ttk.Combobox(
-            linha_filtros, values=estados, width=8, state="readonly"
+            linha_filtros,
+            values=valores_combo_estado(estados),
+            width=14,
+            state="readonly",
         )
         self.combo_estado.grid(row=0, column=1, padx=4, pady=3, sticky="w")
-        if estado_inicial and estado_inicial in estados:
-            self.combo_estado.set(estado_inicial)
-        elif estados:
-            self.combo_estado.set("SP" if "SP" in estados else estados[0])
+        estado_valido = estado_do_combo(estado_inicial)
+        if estado_valido and estado_valido in estados:
+            self.combo_estado.set(estado_valido)
+        else:
+            self.combo_estado.set(PLACEHOLDER_ESTADO)
 
         tk.Label(linha_filtros, text="Unidade:", bg="#ececec").grid(
             row=0, column=2, padx=(14, 4), pady=3, sticky="w"
@@ -107,15 +200,23 @@ class DialogoBuscaSinapi(tk.Toplevel):
             row=1, column=0, padx=(0, 4), pady=3, sticky="w"
         )
         self.var_busca = tk.StringVar()
-        self.entrada_busca = ttk.Entry(linha_filtros, textvariable=self.var_busca, width=48)
-        self.entrada_busca.grid(row=1, column=1, columnspan=3, padx=4, pady=3, sticky="ew")
+        self.entrada_busca = ttk.Entry(linha_filtros, textvariable=self.var_busca, width=36)
+        self.entrada_busca.grid(row=1, column=1, padx=4, pady=3, sticky="ew")
+
+        tk.Label(linha_filtros, text="Quantidade:", bg="#ececec").grid(
+            row=1, column=2, padx=(14, 4), pady=3, sticky="w"
+        )
+        self.var_quantidade = tk.StringVar(value="1")
+        ttk.Entry(linha_filtros, textvariable=self.var_quantidade, width=10).grid(
+            row=1, column=3, padx=4, pady=3, sticky="w"
+        )
         linha_filtros.columnconfigure(1, weight=1)
 
         self._atualizar_unidades()
 
         self.label_status = tk.Label(
             painel,
-            text="Digite palavras ou o código SINAPI para pesquisar.",
+            text="Selecione o estado e digite para pesquisar.",
             font=("Arial", 8),
             fg="#555555",
             bg="#ececec",
@@ -146,24 +247,39 @@ class DialogoBuscaSinapi(tk.Toplevel):
 
         rodape = tk.Frame(painel, bg="#ececec")
         rodape.pack(fill="x")
+        rodape.columnconfigure(1, weight=1)
 
-        tk.Label(rodape, text="Quantidade:", bg="#ececec").pack(side="left")
-        self.var_quantidade = tk.StringVar(value="1")
-        ttk.Entry(rodape, textvariable=self.var_quantidade, width=10).pack(
-            side="left", padx=(6, 12)
+        _criar_botao_acao(rodape, "Cancelar", self.destroy, "#C62828").grid(
+            row=0, column=0, sticky="w"
         )
-        ttk.Button(rodape, text="Inserir no grupo", command=self._confirmar).pack(side="left")
-        ttk.Button(rodape, text="Cancelar", command=self.destroy).pack(side="right")
+
+        frame_dir = tk.Frame(rodape, bg="#ececec")
+        frame_dir.grid(row=0, column=2, sticky="e")
+        _criar_botao_acao(
+            frame_dir,
+            "Inserir no grupo",
+            lambda: self._confirmar(fechar=False),
+            "#2E7D32",
+        ).pack(side="left", padx=(0, 8))
+        _criar_botao_acao(
+            frame_dir,
+            "Inserir e fechar",
+            lambda: self._confirmar(fechar=True),
+            "#388E3C",
+        ).pack(side="left")
 
         self.var_busca.trace_add("write", self._ao_digitar)
         self.combo_estado.bind("<<ComboboxSelected>>", self._ao_mudar_estado)
         self.combo_unidade.bind("<<ComboboxSelected>>", lambda _e: self._executar_busca())
-        self.tree.bind("<Double-1>", lambda _e: self._confirmar())
+        self.tree.bind("<Double-1>", lambda _e: self._confirmar(fechar=False))
 
         if self.ctx.sinapi.empty:
             self.label_status.config(text="Base SINAPI indisponível.", fg="#C62828")
 
         self.entrada_busca.focus_set()
+
+    def _estado_selecionado(self):
+        return estado_do_combo(self.combo_estado.get())
 
     def _unidade_selecionada(self):
         valor = self.combo_unidade.get().strip()
@@ -176,7 +292,7 @@ class DialogoBuscaSinapi(tk.Toplevel):
         self.combo_unidade.set(atual if atual in valores else UNIDADE_TODAS)
 
     def _atualizar_unidades(self, consulta=None):
-        estado = self.combo_estado.get().strip()
+        estado = self._estado_selecionado()
         if consulta is None:
             consulta = self.var_busca.get()
         if consulta and consulta.strip():
@@ -199,7 +315,7 @@ class DialogoBuscaSinapi(tk.Toplevel):
             self.after_cancel(self._job_busca)
             self._job_busca = None
 
-        estado = self.combo_estado.get().strip()
+        estado = self._estado_selecionado()
         consulta = self.var_busca.get()
         if not estado:
             self.label_status.config(text="Selecione um estado.", fg="#C62828")
@@ -232,7 +348,7 @@ class DialogoBuscaSinapi(tk.Toplevel):
     def _parse_quantidade(self, texto):
         return float(str(texto).strip().replace(",", "."))
 
-    def _confirmar(self):
+    def _confirmar(self, fechar=False):
         selecionado = self.tree.selection()
         if not selecionado:
             messagebox.showinfo(
@@ -247,7 +363,14 @@ class DialogoBuscaSinapi(tk.Toplevel):
             return
 
         codigo, descricao, unidade, custo_fmt = valores
-        estado = self.combo_estado.get().strip()
+        estado = self._estado_selecionado()
+        if not estado:
+            messagebox.showwarning(
+                "Inserir item",
+                "Selecione um estado.",
+                parent=self,
+            )
+            return
 
         try:
             quantidade = self._parse_quantidade(self.var_quantidade.get())
@@ -268,7 +391,8 @@ class DialogoBuscaSinapi(tk.Toplevel):
             custo = 0.0
 
         self.on_confirmar(codigo, descricao, unidade, custo, quantidade, estado)
-        self.destroy()
+        if fechar:
+            self.destroy()
 
 
 class OrcamentoCustomizadoFrame(tk.Frame):
@@ -288,9 +412,9 @@ class OrcamentoCustomizadoFrame(tk.Frame):
         self.on_voltar = on_voltar
         self.orcamento = OrcamentoCustomizado(bdi_percent=BDI_PADRAO)
         self._mapa_tree = {}
-        self._style_tree_configurado = False
         self._atualizando_tree = False
         self._job_redimensionar = None
+        ttk.Style(self).configure(ESTILO_TREE_ORC, rowheight=ALTURA_LINHA_BASE)
         self._montar()
         ctx.registrar_callback_sinapi(self._ao_atualizar_sinapi)
 
@@ -335,11 +459,10 @@ class OrcamentoCustomizadoFrame(tk.Frame):
         tk.Label(linha_nome, text="Estado:", bg="#ececec").pack(side="left")
         estados = self.ctx.obter_estados()
         self.combo_estado = ttk.Combobox(
-            linha_nome, values=estados, width=7, state="readonly"
+            linha_nome, values=valores_combo_estado(estados), width=14, state="readonly"
         )
         self.combo_estado.pack(side="left", padx=(6, 16))
-        if estados:
-            self.combo_estado.set("SP" if "SP" in estados else estados[0])
+        self.combo_estado.set(PLACEHOLDER_ESTADO)
         self.combo_estado.bind("<<ComboboxSelected>>", self._ao_mudar_estado)
 
         tk.Label(linha_nome, text="BDI (%):", bg="#ececec").pack(side="left")
@@ -355,9 +478,6 @@ class OrcamentoCustomizadoFrame(tk.Frame):
         )
         ttk.Button(
             linha_botoes, text="Remover selecionado", command=self._remover_selecionado
-        ).pack(side="left", padx=(0, 6))
-        ttk.Button(
-            linha_botoes, text="Editar quantidade", command=self._editar_quantidade_selecionada
         ).pack(side="left", padx=(0, 16))
 
         ttk.Button(
@@ -425,6 +545,7 @@ class OrcamentoCustomizadoFrame(tk.Frame):
 
         self.tree_orcamento.tag_configure("grupo", font=("Arial", 9, "bold"))
         self.tree_orcamento.tag_configure("composicao", foreground="#7b5e00")
+        self.tree_orcamento.tag_configure("continuacao", foreground="#555555")
 
         rodape_orc = tk.Frame(
             conteudo, bg="#f5fafc", highlightbackground="#cccccc", highlightthickness=1
@@ -446,8 +567,8 @@ class OrcamentoCustomizadoFrame(tk.Frame):
         self.label_dica = tk.Label(
             conteudo,
             text=(
-                "Numeração automática: 1, 2… para etapas; 1.1, 1.2… para itens. "
-                "Duplo clique na coluna Qtd. para editar."
+                "Crie uma nova etapa para adicionar itens. "
+                "Duplo clique na coluna Qtd. para editar a quantidade."
             ),
             font=("Arial", 8),
             fg="#666666",
@@ -493,11 +614,14 @@ class OrcamentoCustomizadoFrame(tk.Frame):
     def _ao_mudar_estado(self, _event=None):
         self._atualizar_tree_orcamento()
 
+    def _estado_selecionado(self):
+        return estado_do_combo(self.combo_estado.get())
+
     def _ao_atualizar_sinapi(self):
         estados = self.ctx.obter_estados()
-        self.combo_estado["values"] = estados
-        if estados and self.combo_estado.get() not in estados:
-            self.combo_estado.set("SP" if "SP" in estados else estados[0])
+        self.combo_estado["values"] = valores_combo_estado(estados)
+        if self.combo_estado.get() not in self.combo_estado["values"]:
+            self.combo_estado.set(PLACEHOLDER_ESTADO)
         self.label_referencia.config(text=self._texto_referencia())
         self._atualizar_tree_orcamento()
 
@@ -514,11 +638,19 @@ class OrcamentoCustomizadoFrame(tk.Frame):
             return
         self._atualizar_tree_orcamento()
 
+    def _meta_principal(self, iid):
+        meta = self._mapa_tree.get(iid)
+        if not meta:
+            return None
+        if meta.get("continuacao"):
+            return self._mapa_tree.get(meta.get("principal_iid"))
+        return meta
+
     def _grupo_id_selecionado(self):
         selecionado = self.tree_orcamento.selection()
         if not selecionado:
             return None
-        meta = self._mapa_tree.get(selecionado[0])
+        meta = self._meta_principal(selecionado[0])
         if not meta:
             return None
         if meta["tipo"] == TIPO_GRUPO:
@@ -553,6 +685,8 @@ class OrcamentoCustomizadoFrame(tk.Frame):
             return
 
         def ao_confirmar(codigo, descricao, unidade, custo, quantidade, estado):
+            if estado and estado in self.ctx.obter_estados():
+                self.combo_estado.set(estado)
             self._inserir_item_sinapi(
                 grupo_id, codigo, descricao, unidade, custo, quantidade, estado
             )
@@ -560,7 +694,7 @@ class OrcamentoCustomizadoFrame(tk.Frame):
         DialogoBuscaSinapi(
             self.winfo_toplevel(),
             self.ctx,
-            self.combo_estado.get().strip(),
+            self._estado_selecionado(),
             ao_confirmar,
         )
 
@@ -583,7 +717,7 @@ class OrcamentoCustomizadoFrame(tk.Frame):
             )
             return
 
-        estado = self.combo_estado.get().strip()
+        estado = self._estado_selecionado()
         if not estado:
             messagebox.showwarning(
                 "Inserir rápido",
@@ -648,6 +782,8 @@ class OrcamentoCustomizadoFrame(tk.Frame):
 
     def _selecionar_grupo_na_tree(self, grupo_id):
         for iid, meta in self._mapa_tree.items():
+            if meta.get("continuacao"):
+                continue
             if meta.get("tipo") == TIPO_GRUPO and meta.get("id") == grupo_id:
                 self.tree_orcamento.selection_set(iid)
                 self.tree_orcamento.focus(iid)
@@ -656,6 +792,8 @@ class OrcamentoCustomizadoFrame(tk.Frame):
 
     def _selecionar_item_na_tree(self, item_id):
         for iid, meta in self._mapa_tree.items():
+            if meta.get("continuacao"):
+                continue
             if meta.get("tipo") in (TIPO_SINAPI, TIPO_COMPOSICAO_PROPRIA) and meta.get("id") == item_id:
                 self.tree_orcamento.selection_set(iid)
                 self.tree_orcamento.focus(iid)
@@ -715,7 +853,11 @@ class OrcamentoCustomizadoFrame(tk.Frame):
         selecionado = self.tree_orcamento.selection()
         if not selecionado:
             return None, None
-        return selecionado[0], self._mapa_tree.get(selecionado[0])
+        iid = selecionado[0]
+        meta = self._meta_principal(iid)
+        if meta and meta.get("continuacao"):
+            iid = meta.get("principal_iid", iid)
+        return iid, meta
 
     def _remover_selecionado(self):
         _iid, meta = self._meta_selecionada()
@@ -740,23 +882,12 @@ class OrcamentoCustomizadoFrame(tk.Frame):
 
         self._atualizar_tree_orcamento()
 
-    def _editar_quantidade_selecionada(self):
-        _iid, meta = self._meta_selecionada()
-        if not meta or meta["tipo"] == TIPO_GRUPO:
-            messagebox.showinfo(
-                "Quantidade",
-                "Selecione um item para editar a quantidade.",
-                parent=self.winfo_toplevel(),
-            )
-            return
-        self._dialogo_editar_quantidade(meta["id"])
-
     def _ao_duplo_clique_orcamento(self, event):
         iid = self.tree_orcamento.identify_row(event.y)
         coluna = self.tree_orcamento.identify_column(event.x)
         if not iid or coluna != "#3":
             return
-        meta = self._mapa_tree.get(iid)
+        meta = self._meta_principal(iid)
         if not meta or meta["tipo"] == TIPO_GRUPO:
             return
         self._dialogo_editar_quantidade(meta["id"])
@@ -766,32 +897,58 @@ class OrcamentoCustomizadoFrame(tk.Frame):
         if item is None:
             return
 
-        nova = simpledialog.askstring(
-            "Editar quantidade",
-            f"Nova quantidade para:\n{rotulo_item(item)}",
-            initialvalue=_formatar_quantidade(item["quantidade"]),
-            parent=self.winfo_toplevel(),
+        def ao_confirmar(texto):
+            try:
+                self.orcamento.atualizar_quantidade(item_id, self._parse_quantidade(texto))
+            except ValueError as exc:
+                messagebox.showwarning(
+                    "Quantidade", str(exc), parent=self.winfo_toplevel()
+                )
+                return
+            self._atualizar_tree_orcamento()
+            self._selecionar_item_na_tree(item_id)
+
+        DialogoEditarQuantidade(
+            self.winfo_toplevel(),
+            rotulo_item(item),
+            item["quantidade"],
+            ao_confirmar,
         )
-        if nova is None:
-            return
-        try:
-            self.orcamento.atualizar_quantidade(item_id, self._parse_quantidade(nova))
-        except ValueError as exc:
-            messagebox.showwarning("Quantidade", str(exc), parent=self.winfo_toplevel())
-            return
 
-        self._atualizar_tree_orcamento()
-        self._selecionar_item_na_tree(item_id)
-
-    def _aplicar_altura_linhas(self, max_linhas):
-        linhas = max(1, max_linhas)
-        altura = ALTURA_LINHA_BASE * linhas
-        estilo = ttk.Style(self)
-        if not self._style_tree_configurado:
-            estilo.configure(ESTILO_TREE_ORC, rowheight=altura)
-            self._style_tree_configurado = True
-        else:
-            estilo.configure(ESTILO_TREE_ORC, rowheight=altura)
+    def _inserir_linhas_tree(self, parent_iid, num_text, valores_base, linhas_desc, tags, meta):
+        principal_iid = None
+        for indice, linha_desc in enumerate(linhas_desc):
+            if indice == 0:
+                valores = list(valores_base)
+                valores[1] = linha_desc
+                iid = self.tree_orcamento.insert(
+                    parent_iid,
+                    "end",
+                    text=num_text,
+                    values=tuple(valores),
+                    tags=tags,
+                    open=True,
+                )
+                principal_iid = iid
+                self._mapa_tree[iid] = {
+                    **meta,
+                    "continuacao": False,
+                    "principal_iid": iid,
+                }
+            else:
+                iid = self.tree_orcamento.insert(
+                    principal_iid,
+                    "end",
+                    text="",
+                    values=("", f"  {linha_desc}", "", "", "", "", ""),
+                    tags=("continuacao",),
+                )
+                self._mapa_tree[iid] = {
+                    **meta,
+                    "continuacao": True,
+                    "principal_iid": principal_iid,
+                }
+        return principal_iid
 
     def _atualizar_tree_orcamento(self):
         self._atualizando_tree = True
@@ -804,34 +961,23 @@ class OrcamentoCustomizadoFrame(tk.Frame):
         self.tree_orcamento.delete(*self.tree_orcamento.get_children())
         self._mapa_tree.clear()
 
-        estado_atual = self.combo_estado.get().strip()
+        estado_atual = self._estado_selecionado()
         bdi = self._obter_bdi()
         largura_desc = self.tree_orcamento.column("descricao", option="width") or 340
-        max_linhas = 1
 
         for idx_grupo, grupo in enumerate(self.orcamento.grupos, start=1):
             num_grupo = str(idx_grupo)
-            desc_grupo = _quebrar_descricao(grupo["nome"], largura_desc)
-            max_linhas = max(max_linhas, desc_grupo.count("\n") + 1)
-
             sub_grupo = subtotal_grupo(grupo, bdi)
-            iid_grupo = self.tree_orcamento.insert(
+            linhas_grupo = _linhas_descricao(grupo["nome"], largura_desc)
+            valores_grupo = ("", "", "", "", "", "", _formatar_moeda(sub_grupo))
+            iid_grupo = self._inserir_linhas_tree(
                 "",
-                "end",
-                text=num_grupo,
-                values=(
-                    "",
-                    desc_grupo,
-                    "",
-                    "",
-                    "",
-                    "",
-                    _formatar_moeda(sub_grupo),
-                ),
-                open=True,
-                tags=("grupo",),
+                num_grupo,
+                valores_grupo,
+                linhas_grupo,
+                ("grupo",),
+                {"tipo": TIPO_GRUPO, "id": grupo["id"]},
             )
-            self._mapa_tree[iid_grupo] = {"tipo": TIPO_GRUPO, "id": grupo["id"]}
 
             for idx_item, item in enumerate(grupo["itens"], start=1):
                 num_item = f"{idx_grupo}.{idx_item}"
@@ -852,54 +998,57 @@ class OrcamentoCustomizadoFrame(tk.Frame):
 
                     custo_bdi = custo_unitario_com_bdi(custo, bdi)
                     total = subtotal_item(item, bdi)
-                    desc = _quebrar_descricao(item["descricao"], largura_desc)
-                    max_linhas = max(max_linhas, desc.count("\n") + 1)
-
-                    iid_item = self.tree_orcamento.insert(
+                    linhas_desc = _linhas_descricao(item["descricao"], largura_desc)
+                    valores_item = (
+                        item["codigo"],
+                        "",
+                        _formatar_quantidade(item["quantidade"]),
+                        item["unidade"],
+                        _formatar_moeda(custo),
+                        _formatar_moeda(custo_bdi),
+                        _formatar_moeda(total),
+                    )
+                    self._inserir_linhas_tree(
                         iid_grupo,
-                        "end",
-                        text=num_item,
-                        values=(
-                            item["codigo"],
-                            desc,
-                            _formatar_quantidade(item["quantidade"]),
-                            item["unidade"],
-                            _formatar_moeda(custo),
-                            _formatar_moeda(custo_bdi),
-                            _formatar_moeda(total),
-                        ),
+                        num_item,
+                        valores_item,
+                        linhas_desc,
+                        (),
+                        {
+                            "tipo": TIPO_SINAPI,
+                            "id": item["id"],
+                            "grupo_id": grupo["id"],
+                        },
                     )
                 else:
-                    desc = _quebrar_descricao(item["nome"], largura_desc)
-                    max_linhas = max(max_linhas, desc.count("\n") + 1)
-                    iid_item = self.tree_orcamento.insert(
+                    linhas_desc = _linhas_descricao(item["nome"], largura_desc)
+                    valores_item = (
+                        "",
+                        "",
+                        _formatar_quantidade(item["quantidade"]),
+                        item["unidade"],
+                        "—",
+                        "—",
+                        _formatar_moeda(0),
+                    )
+                    self._inserir_linhas_tree(
                         iid_grupo,
-                        "end",
-                        text=num_item,
-                        values=(
-                            "",
-                            desc,
-                            _formatar_quantidade(item["quantidade"]),
-                            item["unidade"],
-                            "—",
-                            "—",
-                            _formatar_moeda(0),
-                        ),
-                        tags=("composicao",),
+                        num_item,
+                        valores_item,
+                        linhas_desc,
+                        ("composicao",),
+                        {
+                            "tipo": TIPO_COMPOSICAO_PROPRIA,
+                            "id": item["id"],
+                            "grupo_id": grupo["id"],
+                        },
                     )
 
-                self._mapa_tree[iid_item] = {
-                    "tipo": item["tipo"],
-                    "id": item["id"],
-                    "grupo_id": grupo["id"],
-                }
-
             sub_atualizado = subtotal_grupo(grupo, bdi)
-            valores_grupo = list(self.tree_orcamento.item(iid_grupo, "values"))
-            valores_grupo[-1] = _formatar_moeda(sub_atualizado)
-            self.tree_orcamento.item(iid_grupo, values=tuple(valores_grupo))
+            valores_grupo_atual = list(self.tree_orcamento.item(iid_grupo, "values"))
+            valores_grupo_atual[-1] = _formatar_moeda(sub_atualizado)
+            self.tree_orcamento.item(iid_grupo, values=tuple(valores_grupo_atual))
 
-        self._aplicar_altura_linhas(max_linhas)
         bdi_txt = _formatar_bdi(bdi)
         self.label_total.config(
             text=f"Total geral (c/ BDI {bdi_txt}%): {_formatar_moeda(self.orcamento.total())}"
