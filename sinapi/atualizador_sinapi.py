@@ -75,7 +75,11 @@ PADRAO_CATALOGO = re.compile(
     r"(?i)SINAPI_Refer[eê]ncia_(\d{4})_(\d{2})_catalogo\.csv$"
 )
 
-PADRAO_CSV = re.compile(
+PADRAO_PRECOS = re.compile(
+    r"(?i)SINAPI_Refer[eê]ncia_(\d{4})_(\d{2})_precos\.csv$"
+)
+
+PADRAO_MONOLITICO_OBSOLETO = re.compile(
     r"(?i)SINAPI_Refer[eê]ncia_(\d{4})_(\d{2})\.csv$"
 )
 
@@ -95,24 +99,21 @@ def salvar_status(dados):
 # DESCOBRE ÚLTIMA VERSÃO LOCAL #
 # ============================ #
 
+def _versao_do_csv(nome_arquivo: str):
+    for padrao in (PADRAO_CATALOGO, PADRAO_PRECOS):
+        match = padrao.match(nome_arquivo)
+        if match:
+            return int(match.group(1)), int(match.group(2))
+    return None
+
+
 def obter_ultima_versao_local():
     versoes = []
 
     for arquivo in PASTA_PROCESSADO.glob("*.csv"):
-
-        match = PADRAO_CATALOGO.match(arquivo.name)
-
-        if match:
-            ano = int(match.group(1))
-            mes = int(match.group(2))
-            versoes.append((ano, mes))
-            continue
-
-        match = PADRAO_CSV.match(arquivo.name)
-        if match and "_catalogo" not in arquivo.name.lower() and "_precos" not in arquivo.name.lower():
-            ano = int(match.group(1))
-            mes = int(match.group(2))
-            versoes.append((ano, mes))
+        versao = _versao_do_csv(arquivo.name)
+        if versao:
+            versoes.append(versao)
 
     if not versoes:
         return None
@@ -522,15 +523,21 @@ def limpar_versoes_antigas():
     # -----------------------------
 
     for arquivo in PASTA_PROCESSADO.glob("*.csv"):
+        nome = arquivo.name
 
-        match = PADRAO_CSV.match(arquivo.name)
-
-        if not match:
+        if PADRAO_MONOLITICO_OBSOLETO.match(nome):
+            try:
+                arquivo.unlink()
+                print(f"CSV obsoleto removido: {nome}")
+            except Exception as e:
+                print(f"Erro removendo CSV obsoleto {nome}: {e}")
             continue
 
-        ano = int(match.group(1))
-        mes = int(match.group(2))
+        versao = _versao_do_csv(nome)
+        if versao is None:
+            continue
 
+        ano, mes = versao
         if (ano, mes) != (ano_mais_recente, mes_mais_recente):
 
             try:

@@ -28,22 +28,6 @@ class SinapiBase:
             pd.DataFrame(columns=["codigo", "estado", "custo"]),
         )
 
-    @classmethod
-    def from_dataframe_legado(cls, df: pd.DataFrame) -> SinapiBase:
-        if df.empty:
-            return cls.vazio()
-        dados = df.copy()
-        dados.columns = dados.columns.str.strip().str.lower()
-        dados["codigo"] = dados["codigo"].astype(str).str.strip()
-        if "tipo" not in dados.columns:
-            dados["tipo"] = ""
-        catalogo = pd.DataFrame(
-            dados.groupby("codigo", as_index=False)
-            .first()[["codigo", "descricao", "unidade", "tipo"]]
-        )
-        precos = pd.DataFrame(dados[["codigo", "estado", "custo"]])
-        return cls(catalogo, precos)
-
     @staticmethod
     def _normalizar_catalogo(catalogo: pd.DataFrame) -> pd.DataFrame:
         if catalogo.empty:

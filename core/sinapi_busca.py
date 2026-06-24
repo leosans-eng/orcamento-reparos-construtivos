@@ -66,10 +66,8 @@ def _consulta_parece_codigo(consulta):
     return bool(limpo) and limpo.isdigit()
 
 
-def _as_base(sinapi) -> SinapiBase:
-    if isinstance(sinapi, SinapiBase):
-        return sinapi
-    return SinapiBase.from_dataframe_legado(sinapi)
+def _as_base(sinapi: SinapiBase) -> SinapiBase:
+    return sinapi
 
 
 def _filtrar_por_estado(sinapi, estado):

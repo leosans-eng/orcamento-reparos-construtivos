@@ -27,7 +27,6 @@ def processar_arquivo(caminho_excel, callback=None):
 
     caminho_catalogo = PASTA_PROCESSADO / f"{nome_base}_catalogo.csv"
     caminho_precos = PASTA_PROCESSADO / f"{nome_base}_precos.csv"
-    caminho_legado = PASTA_PROCESSADO / f"{nome_base}.csv"
 
     def log(msg):
         print(msg)
@@ -252,9 +251,6 @@ def processar_arquivo(caminho_excel, callback=None):
         writer = csv.writer(f_pre)
         writer.writerow(["codigo", "estado", "custo"])
         writer.writerows(precos)
-
-    if caminho_legado.is_file():
-        caminho_legado.unlink()
 
     log(f"Catálogo criado: {caminho_catalogo} ({len(catalogo)} itens)")
     log(f"Preços criados: {caminho_precos} ({len(precos)} registros)")

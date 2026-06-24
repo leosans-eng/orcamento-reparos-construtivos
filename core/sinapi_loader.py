@@ -9,7 +9,6 @@ from core.sinapi_base import SinapiBase
 
 APP_DIR = app_dir()
 PASTA_SINAPI_PROCESSADO = os.path.join(APP_DIR, "sinapi", "sinapi_processado")
-CAMINHO_FALLBACK_SINAPI = os.path.join(APP_DIR, "sinapi_precos.csv")
 
 PADRAO_CATALOGO = re.compile(
     r"(?i)SINAPI_Refer[eê]ncia_(\d{4})_(\d{2})_catalogo\.csv$"
@@ -17,10 +16,9 @@ PADRAO_CATALOGO = re.compile(
 PADRAO_PRECOS = re.compile(
     r"(?i)SINAPI_Refer[eê]ncia_(\d{4})_(\d{2})_precos\.csv$"
 )
-PADRAO_LEGADO = re.compile(
+PADRAO_MONOLITICO_OBSOLETO = re.compile(
     r"(?i)SINAPI_Refer[eê]ncia_(\d{4})_(\d{2})\.csv$"
 )
-
 PADRAO_XLSX_REFERENCIA = re.compile(
     r"(?i)SINAPI_Refer[eê]ncia_(\d{4})_(\d{2})\.xlsx$"
 )
@@ -52,31 +50,39 @@ def _listar_pares_processados(pasta_processado: str) -> dict[tuple[int, int], tu
     }
 
 
-def _listar_legado_processado(pasta_processado: str) -> tuple[str, str] | tuple[None, None]:
+def _remover_csv_monolitico_obsoleto(pasta_processado: str) -> None:
     if not os.path.isdir(pasta_processado):
-        return None, None
-    candidatos = []
+        return
     for nome in os.listdir(pasta_processado):
-        match = PADRAO_LEGADO.match(nome)
-        if match and "_catalogo" not in nome.lower() and "_precos" not in nome.lower():
-            candidatos.append(
-                ((int(match.group(1)), int(match.group(2))), os.path.join(pasta_processado, nome))
-            )
-    if not candidatos:
-        return None, None
-    candidatos.sort(key=lambda item: item[0], reverse=True)
-    ano, mes = candidatos[0][0]
-    return candidatos[0][1], _rotulo_referencia(ano, mes)
+        if not PADRAO_MONOLITICO_OBSOLETO.match(nome):
+            continue
+        if "_catalogo" in nome.lower() or "_precos" in nome.lower():
+            continue
+        try:
+            os.remove(os.path.join(pasta_processado, nome))
+        except OSError:
+            pass
 
 
-def obter_csv_sinapi_mais_recente(pasta_processado):
-    """Compatibilidade: retorna caminho legado ou catálogo do par mais recente."""
+def _garantir_csv_processado(pasta_processado: str) -> None:
+    if _listar_pares_processados(pasta_processado):
+        return
+    xlsx = obter_xlsx_sinapi_referencia_mais_recente()
+    if xlsx is None:
+        return
+    from sinapi.extrair_sinapi import processar_arquivo
+
+    processar_arquivo(xlsx)
+
+
+def obter_csv_sinapi_mais_recente(pasta_processado=PASTA_SINAPI_PROCESSADO):
+    """Retorna o catálogo CSV do par mais recente (catálogo + preços)."""
     pares = _listar_pares_processados(pasta_processado)
-    if pares:
-        chave = max(pares.keys())
-        caminho_catalogo, _caminho_precos = pares[chave]
-        return caminho_catalogo, _rotulo_referencia(chave[0], chave[1])
-    return _listar_legado_processado(pasta_processado)
+    if not pares:
+        return None, None
+    chave = max(pares.keys())
+    caminho_catalogo, _caminho_precos = pares[chave]
+    return caminho_catalogo, _rotulo_referencia(chave[0], chave[1])
 
 
 def _carregar_par(caminho_catalogo: str, caminho_precos: str, rotulo: str):
@@ -94,31 +100,18 @@ def _carregar_par(caminho_catalogo: str, caminho_precos: str, rotulo: str):
     return base, caminho_catalogo, rotulo
 
 
-def _carregar_legado(caminho: str, rotulo: str):
-    df = pd.read_csv(caminho, dtype={"codigo": str})
-    base = SinapiBase.from_dataframe_legado(df)
-    return base, caminho, rotulo
-
-
 def carregar_sinapi_por_referencia(pasta_processado=PASTA_SINAPI_PROCESSADO):
+    _remover_csv_monolitico_obsoleto(pasta_processado)
+    _garantir_csv_processado(pasta_processado)
+
     pares = _listar_pares_processados(pasta_processado)
-    if pares:
-        chave = max(pares.keys())
-        caminho_catalogo, caminho_precos = pares[chave]
-        rotulo = _rotulo_referencia(chave[0], chave[1])
-        return _carregar_par(caminho_catalogo, caminho_precos, rotulo)
+    if not pares:
+        return SinapiBase.vazio(), None, "BASE AUSENTE"
 
-    caminho_legado, rotulo = _listar_legado_processado(pasta_processado)
-    if caminho_legado and rotulo:
-        return _carregar_legado(caminho_legado, rotulo)
-
-    if os.path.isfile(CAMINHO_FALLBACK_SINAPI):
-        return _carregar_legado(
-            CAMINHO_FALLBACK_SINAPI,
-            "arquivo local (sinapi_precos.csv na raiz do projeto)",
-        )
-
-    return SinapiBase.vazio(), None, "BASE AUSENTE"
+    chave = max(pares.keys())
+    caminho_catalogo, caminho_precos = pares[chave]
+    rotulo = _rotulo_referencia(chave[0], chave[1])
+    return _carregar_par(caminho_catalogo, caminho_precos, rotulo)
 
 
 def carregar_sinapi_inicial():
@@ -148,11 +141,7 @@ def obter_xlsx_sinapi_referencia_mais_recente():
     return candidatos[0][1]
 
 
-def obter_estados_da_sinapi(sinapi):
-    if isinstance(sinapi, SinapiBase):
-        return sinapi.estados()
-    if getattr(sinapi, "empty", True):
+def obter_estados_da_sinapi(sinapi: SinapiBase):
+    if sinapi.empty:
         return []
-    if "estado" not in sinapi.columns:
-        return []
-    return sorted(sinapi["estado"].dropna().unique().tolist())
+    return sinapi.estados()
