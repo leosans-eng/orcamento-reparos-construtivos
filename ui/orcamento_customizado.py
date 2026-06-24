@@ -18,6 +18,7 @@ from core.orcamento_customizado import (
     custo_unitario_com_bdi,
     item_indisponivel_na_base,
     rotulo_item,
+    rotulo_tipo_sinapi,
     subtotal_item,
 )
 from core.orcamento_storage import (
@@ -254,14 +255,16 @@ class DialogoBuscaSinapi(tk.Toplevel):
         )
         painel_resultados.pack(fill="both", expand=True, pady=(0, 8))
 
-        colunas = ("codigo", "descricao", "unidade", "custo")
+        colunas = ("codigo", "tipo_ic", "descricao", "unidade", "custo")
         self.tree = ttk.Treeview(painel_resultados, columns=colunas, show="headings", height=12)
         self.tree.heading("codigo", text="Código")
+        self.tree.heading("tipo_ic", text="I/C")
         self.tree.heading("descricao", text="Descrição")
         self.tree.heading("unidade", text="Unid.")
         self.tree.heading("custo", text="Custo unit. (R$)")
         self.tree.column("codigo", width=60, minwidth=60, stretch=False, anchor="center")
-        self.tree.column("descricao", width=420, minwidth=200, stretch=True)
+        self.tree.column("tipo_ic", width=36, minwidth=32, stretch=False, anchor="center")
+        self.tree.column("descricao", width=400, minwidth=200, stretch=True)
         self.tree.column("unidade", width=55, minwidth=45, stretch=False, anchor="center")
         self.tree.column("custo", width=110, minwidth=90, stretch=False, anchor="e")
 
@@ -351,14 +354,14 @@ class DialogoBuscaSinapi(tk.Toplevel):
         if not selecionado:
             return
         valores = self.tree.item(selecionado[0], "values")
-        if len(valores) < 4:
+        if len(valores) < 5:
             return
-        codigo, descricao, unidade, custo = valores
+        codigo, tipo_ic, descricao, unidade, custo = valores
         estado = self._estado_selecionado()
         self.label_detalhe.config(
             text=(
-                f"Código: {codigo}  ·  Estado: {estado}  ·  Unidade: {unidade}  ·  "
-                f"Custo: {custo}\n{descricao}"
+                f"Código: {codigo}  ·  {tipo_ic}  ·  Estado: {estado}  ·  "
+                f"Unidade: {unidade}  ·  Custo: {custo}\n{descricao}"
             ),
         )
 
@@ -419,6 +422,7 @@ class DialogoBuscaSinapi(tk.Toplevel):
                 "end",
                 values=(
                     str(linha.get("codigo", "")),
+                    str(linha.get("tipo", "")).strip().upper()[:1] or "—",
                     str(linha.get("descricao", "")),
                     str(linha.get("unidade", "")),
                     _formatar_moeda(linha.get("custo", 0)),
@@ -444,10 +448,10 @@ class DialogoBuscaSinapi(tk.Toplevel):
             return
 
         valores = self.tree.item(selecionado[0], "values")
-        if len(valores) < 4:
+        if len(valores) < 5:
             return
 
-        codigo, descricao, unidade, custo_fmt = valores
+        codigo, tipo_ic, descricao, unidade, custo_fmt = valores
         estado = self._estado_selecionado()
         if not estado:
             messagebox.showwarning(
@@ -477,7 +481,9 @@ class DialogoBuscaSinapi(tk.Toplevel):
         except ValueError:
             custo = 0.0
 
-        self.on_confirmar(codigo, descricao, unidade, custo, quantidade, estado)
+        self.on_confirmar(
+            codigo, descricao, unidade, custo, quantidade, estado, tipo_ic if tipo_ic != "—" else ""
+        )
         if fechar:
             self.destroy()
 
@@ -1167,11 +1173,18 @@ class OrcamentoCustomizadoFrame(tk.Frame):
         return float(str(texto).strip().replace(",", "."))
 
     def _inserir_item_sinapi(
-        self, grupo_id, codigo, descricao, unidade, custo, quantidade, estado
+        self, grupo_id, codigo, descricao, unidade, custo, quantidade, estado, tipo_sinapi=""
     ):
         try:
             item_id = self.orcamento.adicionar_item_sinapi(
-                grupo_id, codigo, descricao, unidade, custo, quantidade, estado
+                grupo_id,
+                codigo,
+                descricao,
+                unidade,
+                custo,
+                quantidade,
+                estado,
+                tipo_sinapi,
             )
         except ValueError as exc:
             messagebox.showwarning("Adicionar item", str(exc), parent=self.winfo_toplevel())
@@ -1190,11 +1203,18 @@ class OrcamentoCustomizadoFrame(tk.Frame):
             )
             return
 
-        def ao_confirmar(codigo, descricao, unidade, custo, quantidade, estado):
+        def ao_confirmar(codigo, descricao, unidade, custo, quantidade, estado, tipo_sinapi=""):
             if estado and estado in self.ctx.obter_estados():
                 self.combo_estado.set(estado)
             self._inserir_item_sinapi(
-                grupo_id, codigo, descricao, unidade, custo, quantidade, estado
+                grupo_id,
+                codigo,
+                descricao,
+                unidade,
+                custo,
+                quantidade,
+                estado,
+                tipo_sinapi,
             )
 
         DialogoBuscaSinapi(
@@ -1266,6 +1286,7 @@ class OrcamentoCustomizadoFrame(tk.Frame):
             custo,
             quantidade,
             estado,
+            str(linha.get("tipo", "")).strip().upper()[:1],
         )
         if item_id:
             self.var_codigo_rapido.set("")
@@ -1466,12 +1487,12 @@ class OrcamentoCustomizadoFrame(tk.Frame):
 
         item_id = meta["id"]
 
-        def ao_substituir(codigo, descricao, unidade, custo, _quantidade, estado):
+        def ao_substituir(codigo, descricao, unidade, custo, _quantidade, estado, tipo_sinapi=""):
             if estado and estado in self.ctx.obter_estados():
                 self.combo_estado.set(estado)
             try:
                 self.orcamento.substituir_item_sinapi(
-                    item_id, codigo, descricao, unidade, custo, estado
+                    item_id, codigo, descricao, unidade, custo, estado, tipo_sinapi
                 )
             except ValueError as exc:
                 messagebox.showwarning("Editar item", str(exc), parent=self.winfo_toplevel())
@@ -1560,6 +1581,9 @@ class OrcamentoCustomizadoFrame(tk.Frame):
                     )
                 except (TypeError, ValueError):
                     pass
+                tipo = str(linha.get("tipo", "")).strip().upper()[:1]
+                if tipo in ("I", "C"):
+                    item["tipo_sinapi"] = tipo
                 item["estado"] = estado_atual
 
     def _subtotal_grupo_calculado(self, grupo, bdi, catalogo, estado):
@@ -1600,6 +1624,7 @@ class OrcamentoCustomizadoFrame(tk.Frame):
                 valores={
                     "item": str(idx_grupo),
                     "codigo": "",
+                    "tipo_ic": "",
                     "descricao": grupo["nome"],
                     "quantidade": "",
                     "unidade": "",
@@ -1629,6 +1654,7 @@ class OrcamentoCustomizadoFrame(tk.Frame):
                         valores={
                             "item": num_item,
                             "codigo": item["codigo"],
+                            "tipo_ic": rotulo_tipo_sinapi(item, self.ctx.sinapi),
                             "descricao": item["descricao"],
                             "quantidade": _formatar_quantidade(item["quantidade"]),
                             "unidade": item["unidade"],
@@ -1654,6 +1680,7 @@ class OrcamentoCustomizadoFrame(tk.Frame):
                         valores={
                             "item": num_item,
                             "codigo": item.get("codigo", ""),
+                            "tipo_ic": "",
                             "descricao": item.get("nome", ""),
                             "quantidade": _formatar_quantidade(item["quantidade"]),
                             "unidade": item["unidade"],

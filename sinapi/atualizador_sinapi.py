@@ -71,6 +71,10 @@ MESES_RETROATIVOS_BUSCA = 3
 # PADRÕES #
 # ======= #
 
+PADRAO_CATALOGO = re.compile(
+    r"(?i)SINAPI_Refer[eê]ncia_(\d{4})_(\d{2})_catalogo\.csv$"
+)
+
 PADRAO_CSV = re.compile(
     r"(?i)SINAPI_Refer[eê]ncia_(\d{4})_(\d{2})\.csv$"
 )
@@ -96,12 +100,18 @@ def obter_ultima_versao_local():
 
     for arquivo in PASTA_PROCESSADO.glob("*.csv"):
 
-        match = PADRAO_CSV.match(arquivo.name)
+        match = PADRAO_CATALOGO.match(arquivo.name)
 
         if match:
             ano = int(match.group(1))
             mes = int(match.group(2))
+            versoes.append((ano, mes))
+            continue
 
+        match = PADRAO_CSV.match(arquivo.name)
+        if match and "_catalogo" not in arquivo.name.lower() and "_precos" not in arquivo.name.lower():
+            ano = int(match.group(1))
+            mes = int(match.group(2))
             versoes.append((ano, mes))
 
     if not versoes:

@@ -28,7 +28,7 @@ def _criar_grupo(nome):
     }
 
 
-def _criar_item_sinapi(codigo, descricao, unidade, custo_unitario, quantidade, estado):
+def _criar_item_sinapi(codigo, descricao, unidade, custo_unitario, quantidade, estado, tipo_sinapi=""):
     return {
         "id": _novo_id(),
         "tipo": TIPO_SINAPI,
@@ -38,6 +38,7 @@ def _criar_item_sinapi(codigo, descricao, unidade, custo_unitario, quantidade, e
         "custo_unitario": float(custo_unitario),
         "quantidade": float(quantidade),
         "estado": str(estado).strip(),
+        "tipo_sinapi": str(tipo_sinapi or "").strip().upper()[:1],
     }
 
 
@@ -169,7 +170,7 @@ class OrcamentoCustomizado:
         return True
 
     def adicionar_item_sinapi(
-        self, grupo_id, codigo, descricao, unidade, custo_unitario, quantidade, estado
+        self, grupo_id, codigo, descricao, unidade, custo_unitario, quantidade, estado, tipo_sinapi=""
     ):
         grupo = self.obter_grupo(grupo_id)
         if grupo is None:
@@ -177,7 +178,7 @@ class OrcamentoCustomizado:
         if quantidade <= 0:
             raise ValueError("A quantidade deve ser maior que zero.")
         item = _criar_item_sinapi(
-            codigo, descricao, unidade, custo_unitario, quantidade, estado
+            codigo, descricao, unidade, custo_unitario, quantidade, estado, tipo_sinapi
         )
         grupo["itens"].append(item)
         return item["id"]
@@ -214,7 +215,7 @@ class OrcamentoCustomizado:
         item["quantidade"] = float(quantidade)
 
     def substituir_item_sinapi(
-        self, item_id, codigo, descricao, unidade, custo_unitario, estado
+        self, item_id, codigo, descricao, unidade, custo_unitario, estado, tipo_sinapi=""
     ):
         _grupo, item = self.obter_item(item_id)
         if item is None:
@@ -226,6 +227,7 @@ class OrcamentoCustomizado:
         item["unidade"] = str(unidade).strip()
         item["custo_unitario"] = float(custo_unitario)
         item["estado"] = str(estado).strip()
+        item["tipo_sinapi"] = str(tipo_sinapi or "").strip().upper()[:1]
         return item_id
 
     def remover_item(self, item_id):
@@ -259,6 +261,29 @@ class OrcamentoCustomizado:
         orc.estado_referencia = dados.get("estado_referencia", "")
         orc.grupos = deepcopy(dados.get("grupos", []))
         return orc
+
+
+def rotulo_tipo_sinapi(item, sinapi=None) -> str:
+    if item.get("tipo") != TIPO_SINAPI:
+        return ""
+    tipo = str(item.get("tipo_sinapi", "")).strip().upper()[:1]
+    if tipo in ("I", "C"):
+        return tipo
+    if sinapi is not None:
+        from core.sinapi_busca import obter_item_sinapi
+
+        linha = obter_item_sinapi(sinapi, item.get("codigo", ""), item.get("estado", ""))
+        if linha is not None:
+            tipo = str(linha.get("tipo", "")).strip().upper()[:1]
+            if tipo in ("I", "C"):
+                return tipo
+        from core.sinapi_base import SinapiBase
+
+        if isinstance(sinapi, SinapiBase):
+            tipo = sinapi.obter_tipo(item.get("codigo", ""))
+            if tipo in ("I", "C"):
+                return tipo
+    return "—"
 
 
 def item_indisponivel_na_base(item, sinapi, catalogo, estado) -> bool:

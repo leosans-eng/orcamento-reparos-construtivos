@@ -477,7 +477,7 @@ class ComposicoesPropriasFrame(tk.Frame):
             )
             return
 
-        def ao_escolher(codigo, descricao, unidade, _custo, _quantidade, _estado):
+        def ao_escolher(codigo, descricao, unidade, _custo, _quantidade, _estado, _tipo_sinapi=""):
             coef_texto = perguntar_texto(
                 self.winfo_toplevel(),
                 "Coeficiente",

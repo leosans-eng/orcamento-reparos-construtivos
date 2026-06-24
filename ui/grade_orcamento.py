@@ -10,6 +10,7 @@ Coluna = tuple[str, str, int, TkAnchor, int]
 COLUNAS: tuple[Coluna, ...] = (
     ("item", "Item", 52, "center", 0),
     ("codigo", "Código", 72, "center", 0),
+    ("tipo_ic", "I/C", 36, "center", 0),
     ("descricao", "Descrição", 180, "w", 1),
     ("quantidade", "Qtd.", 64, "w", 0),
     ("unidade", "Unid.", 48, "w", 0),

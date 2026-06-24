@@ -121,7 +121,7 @@ class ConsultaSinapiFrame(tk.Frame):
         )
         painel_resultados.pack(fill="both", expand=True, padx=16, pady=(0, 12))
 
-        colunas = ("codigo", "descricao", "unidade", "custo")
+        colunas = ("codigo", "tipo_ic", "descricao", "unidade", "custo")
         self.tree = ttk.Treeview(
             painel_resultados,
             columns=colunas,
@@ -129,12 +129,14 @@ class ConsultaSinapiFrame(tk.Frame):
             height=14,
         )
         self.tree.heading("codigo", text="Código")
+        self.tree.heading("tipo_ic", text="I/C")
         self.tree.heading("descricao", text="Descrição")
         self.tree.heading("unidade", text="Unid.")
         self.tree.heading("custo", text="Custo unit. (R$)")
 
         self.tree.column("codigo", width=90, minwidth=70, stretch=False)
-        self.tree.column("descricao", width=520, minwidth=200, stretch=True)
+        self.tree.column("tipo_ic", width=40, minwidth=36, stretch=False, anchor="center")
+        self.tree.column("descricao", width=500, minwidth=200, stretch=True)
         self.tree.column("unidade", width=60, minwidth=50, stretch=False, anchor="center")
         self.tree.column("custo", width=110, minwidth=90, stretch=False, anchor="e")
 
@@ -326,6 +328,7 @@ class ConsultaSinapiFrame(tk.Frame):
                 "end",
                 values=(
                     str(linha.get("codigo", "")),
+                    str(linha.get("tipo", "")).strip().upper()[:1] or "—",
                     str(linha.get("descricao", "")),
                     str(linha.get("unidade", "")),
                     custo_fmt,
@@ -338,14 +341,14 @@ class ConsultaSinapiFrame(tk.Frame):
         if not selecionado:
             return
         valores = self.tree.item(selecionado[0], "values")
-        if len(valores) < 4:
+        if len(valores) < 5:
             return
-        codigo, descricao, unidade, custo = valores
+        codigo, tipo_ic, descricao, unidade, custo = valores
         estado = estado_do_combo(self.combo_estado.get())
         self.label_detalhe.config(
             text=(
-                f"Código: {codigo}  ·  Estado: {estado}  ·  Unidade: {unidade}  ·  "
-                f"Custo: {custo}\n{descricao}"
+                f"Código: {codigo}  ·  {tipo_ic}  ·  Estado: {estado}  ·  "
+                f"Unidade: {unidade}  ·  Custo: {custo}\n{descricao}"
             ),
         )
 

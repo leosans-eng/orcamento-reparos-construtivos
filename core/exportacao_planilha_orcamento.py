@@ -96,6 +96,9 @@ def sincronizar_precos_sinapi(orcamento, sinapi, estado: str) -> None:
                 )
             except (TypeError, ValueError):
                 pass
+            tipo = str(linha.get("tipo", "")).strip().upper()[:1]
+            if tipo in ("I", "C"):
+                item["tipo_sinapi"] = tipo
             item["estado"] = estado
 
 

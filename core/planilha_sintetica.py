@@ -68,7 +68,13 @@ def _dados_item(item, catalogo, sinapi, estado: str, bdi: float):
     if item["tipo"] == TIPO_SINAPI:
         preco_s = float(item["custo_unitario"])
         banco = "SINAPI"
-        tipo = "Composição"
+        tipo_ic = str(item.get("tipo_sinapi", "")).strip().upper()
+        if tipo_ic == "I":
+            tipo = "Insumo"
+        elif tipo_ic == "C":
+            tipo = "Composição"
+        else:
+            tipo = "Composição"
         codigo = str(item["codigo"]).strip()
         descricao = str(item.get("descricao", "")).strip()
         unidade = str(item.get("unidade", "")).strip()

@@ -108,6 +108,7 @@ def importar_planilha_i9(caminho: str, catalogo=None) -> ResultadoImportacaoI9:
             break
 
         item = _texto_celula(ws.cell(row=linha, column=1).value)
+        tipo_texto = _texto_celula(ws.cell(row=linha, column=2).value).lower()
         banco = _texto_celula(ws.cell(row=linha, column=3).value)
         codigo = _texto_celula(ws.cell(row=linha, column=4).value)
         descricao = _texto_celula(ws.cell(row=linha, column=5).value)
@@ -160,6 +161,12 @@ def importar_planilha_i9(caminho: str, catalogo=None) -> ResultadoImportacaoI9:
                     f"Linha {linha}: preço unitário ausente para SINAPI {codigo}; "
                     "item importado com custo zero."
                 )
+            if "insumo" in tipo_texto:
+                tipo_sinapi = "I"
+            elif "compos" in tipo_texto:
+                tipo_sinapi = "C"
+            else:
+                tipo_sinapi = ""
             orcamento.adicionar_item_sinapi(
                 grupo_atual_id,
                 codigo,
@@ -168,6 +175,7 @@ def importar_planilha_i9(caminho: str, catalogo=None) -> ResultadoImportacaoI9:
                 preco_sem_bdi,
                 quantidade,
                 estado,
+                tipo_sinapi,
             )
 
         resultado.itens_importados += 1
