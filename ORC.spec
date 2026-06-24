@@ -5,6 +5,7 @@ datas = [
     ('vicios_construtivos.json', '.'),
     ('icone.ico', '.'),
     ('assets/icons/excel24.png', 'assets/icons'),
+    ('assets/icons/excel-preto.png', 'assets/icons'),
 ]
 datas += collect_data_files('certifi')
 

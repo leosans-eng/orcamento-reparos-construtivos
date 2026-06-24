@@ -78,12 +78,11 @@ class HubFrame(tk.Frame):
             habilitado=True,
             coluna=0,
             linha=1,
-            aviso="Tentativa de substituir o i9",
         )
         self._criar_cartao(
             cartoes,
-            titulo="Configurar Composições Próprias",
-            descricao="Cadastre composições com insumos SINAPI ou de mercado e coeficientes",
+            titulo="Configurar\nComposições Próprias",
+            descricao="Cadastre composições com insumos/composições SINAPI ou de mercado",
             modulo="composicoes_proprias",
             habilitado=True,
             coluna=1,
@@ -130,6 +129,8 @@ class HubFrame(tk.Frame):
             font=("Arial", 12, "bold"),
             fg=cor_titulo,
             bg=cor_fundo,
+            wraplength=largura - 28,
+            justify="center",
         )
         lbl_titulo.grid(row=0, column=0, pady=(16, 4), sticky="n")
         filhos.append(lbl_titulo)

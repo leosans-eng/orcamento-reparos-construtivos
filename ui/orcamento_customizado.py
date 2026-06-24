@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox, ttk
 
+from app_paths import asset_path
 from core.composicoes_proprias import custo_composicao_propria_item
 from core.composicoes_proprias_storage import listar as listar_composicoes_catalogo
 from core.orcamento_customizado import (
@@ -708,6 +709,7 @@ class OrcamentoCustomizadoFrame(tk.Frame):
         self._dados_arquivo = carregar_arquivo()
         self._mapa_combo_ids = {}
         self._trocando_orcamento = False
+        self._icone_excel_export = None
         self.orcamento = self._carregar_orcamento_ativo()
         self._montar()
         ctx.registrar_callback_sinapi(self._ao_atualizar_sinapi)
@@ -874,17 +876,43 @@ class OrcamentoCustomizadoFrame(tk.Frame):
         )
         rodape_orc.pack(fill="x", padx=4, pady=(4, 0))
 
+        linha_total = tk.Frame(rodape_orc, bg="#f5fafc")
+        linha_total.pack(fill="x")
+
+        container_total = tk.Frame(linha_total, bg="#f5fafc")
+        container_total.pack(side="right", padx=10, pady=8)
+
+        kwargs_botao_excel = {
+            "text": "Gerar Planilha",
+            "command": self._exportar_planilha,
+            "font": ("Arial", 10, "bold"),
+            "fg": "#000000",
+            "activeforeground": "#000000",
+            "bg": "#f5fafc",
+            "activebackground": "#e8f0f3",
+            "relief": "flat",
+            "bd": 0,
+            "padx": 2,
+            "pady": 0,
+            "cursor": "hand2",
+            "highlightthickness": 0,
+        }
+        caminho_icone_excel = asset_path("icons", "excel-preto.png")
+        if caminho_icone_excel is not None:
+            self._icone_excel_export = tk.PhotoImage(file=str(caminho_icone_excel))
+            kwargs_botao_excel["image"] = self._icone_excel_export
+            kwargs_botao_excel["compound"] = "right"
+        tk.Button(container_total, **kwargs_botao_excel).pack(side="left", padx=(0, 16))
+
         self.label_total = tk.Label(
-            rodape_orc,
+            container_total,
             text="Total geral (c/ BDI): R$ 0,00",
             font=("Arial", 11, "bold"),
             fg="#006699",
             bg="#f5fafc",
             anchor="e",
-            padx=10,
-            pady=8,
         )
-        self.label_total.pack(fill="x")
+        self.label_total.pack(side="left")
 
         self._atualizar_combo_orcamentos()
         self._aplicar_orcamento_na_interface()
@@ -1391,8 +1419,33 @@ class OrcamentoCustomizadoFrame(tk.Frame):
             fechar_unico=True,
         )
 
+    def _exportar_planilha(self):
+        pass
+
     def _atualizar_grade(self):
         self._preencher_grade()
+
+    def _sincronizar_precos_sinapi(self, estado_atual):
+        if not estado_atual:
+            return
+        for grupo in self.orcamento.grupos:
+            for item in grupo.get("itens", []):
+                if item["tipo"] != TIPO_SINAPI:
+                    continue
+                if item.get("estado") == estado_atual:
+                    continue
+                linha = obter_item_sinapi(
+                    self.ctx.sinapi, item["codigo"], estado_atual
+                )
+                if linha is None:
+                    continue
+                try:
+                    item["custo_unitario"] = float(
+                        linha.get("custo", item["custo_unitario"])
+                    )
+                except (TypeError, ValueError):
+                    pass
+                item["estado"] = estado_atual
 
     def _subtotal_grupo_calculado(self, grupo, bdi, catalogo, estado):
         total = 0.0
@@ -1423,6 +1476,7 @@ class OrcamentoCustomizadoFrame(tk.Frame):
         estado_atual = self._estado_selecionado()
         bdi = self._obter_bdi()
         catalogo = listar_composicoes_catalogo()
+        self._sincronizar_precos_sinapi(estado_atual)
 
         for idx_grupo, grupo in enumerate(self.orcamento.grupos, start=1):
             sub_grupo = self._subtotal_grupo_calculado(grupo, bdi, catalogo, estado_atual)
@@ -1446,18 +1500,6 @@ class OrcamentoCustomizadoFrame(tk.Frame):
 
                 if item["tipo"] == TIPO_SINAPI:
                     custo = item["custo_unitario"]
-                    if estado_atual and item.get("estado") != estado_atual:
-                        linha = obter_item_sinapi(
-                            self.ctx.sinapi, item["codigo"], estado_atual
-                        )
-                        if linha is not None:
-                            try:
-                                custo = float(linha.get("custo", custo))
-                            except (TypeError, ValueError):
-                                pass
-                            item["custo_unitario"] = custo
-                            item["estado"] = estado_atual
-
                     custo_bdi = custo_unitario_com_bdi(custo, bdi)
                     total = subtotal_item(item, bdi)
                     self.grade.adicionar_linha(
