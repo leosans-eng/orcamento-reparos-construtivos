@@ -1,8 +1,8 @@
 from pathlib import Path
 from datetime import datetime
+from typing import MutableMapping
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
-import time
 import requests
 import zipfile
 import io
@@ -47,7 +47,7 @@ adapter = HTTPAdapter(max_retries=retry)
 session.mount("https://", adapter)
 session.mount("http://", adapter)
 
-HEADERS = {
+HEADERS: MutableMapping[str, str | bytes] = {
     "User-Agent": (
         "Mozilla/5.0 "
         "(Windows NT 10.0; Win64; x64) "
@@ -66,9 +66,6 @@ HEADERS = {
 
 # Meses anteriores ao atual a verificar no servidor da Caixa.
 MESES_RETROATIVOS_BUSCA = 3
-
-# Tentativas por mês antes de considerar indisponível naquele período.
-TENTATIVAS_POR_MES = 3
 
 # ======= #
 # PADRÕES #
@@ -155,6 +152,19 @@ def gerar_url(ano, mes):
 # TESTA EXISTÊNCIA #
 # ================ #
 
+def _formatar_codigos_resposta(response):
+    codigos = [str(r.status_code) for r in response.history]
+    codigos.append(str(response.status_code))
+    return " -> ".join(codigos)
+
+
+def _codigos_de_excecao(exc):
+    response = getattr(exc, "response", None)
+    if response is not None:
+        return _formatar_codigos_resposta(response)
+    return None
+
+
 def _resposta_indica_zip(response):
     """
     Retorna:
@@ -220,33 +230,45 @@ def sinapi_existe(ano, mes):
 
     url = gerar_url(ano, mes)
 
-    for tentativa in range(TENTATIVAS_POR_MES):
+    try:
 
-        try:
+        response = session.get(
+            url,
+            headers=HEADERS,
+            timeout=30,
+            stream=True,
+            allow_redirects=True,
+        )
 
-            response = session.get(
-                url,
-                headers=HEADERS,
-                timeout=30,
-                stream=True,
-                allow_redirects=True,
-            )
+        print(
+            f"  HTTP {_formatar_codigos_resposta(response)} "
+            f"({ano}_{mes:02d})"
+        )
 
-            resultado = _resposta_indica_zip(response)
+        resultado = _resposta_indica_zip(response)
 
-            if resultado is not None:
-                return resultado
+        if resultado is not None:
+            return resultado
 
-        except requests.RequestException as e:
+    except requests.TooManyRedirects as e:
 
+        codigos = _codigos_de_excecao(e)
+        if codigos:
             print(
-                f"Erro verificando "
-                f"{ano}_{mes:02d} "
-                f"(tentativa {tentativa + 1}): {e}"
+                f"  HTTP {codigos} ({ano}_{mes:02d}) "
+                f"— limite de redirects"
             )
+        else:
+            print(
+                f"  HTTP limite de redirects excedido ({ano}_{mes:02d})"
+            )
+        return False
 
-        if tentativa < TENTATIVAS_POR_MES - 1:
-            time.sleep(1.5 * (tentativa + 1))
+    except requests.RequestException as e:
+
+        codigos = _codigos_de_excecao(e)
+        sufixo = f" — HTTP {codigos}" if codigos else ""
+        print(f"Erro verificando {ano}_{mes:02d}: {e}{sufixo}")
 
     return None
 
@@ -324,6 +346,8 @@ def baixar_e_extrair(ano, mes):
         headers=HEADERS,
         timeout=120
     )
+
+    print(f"  HTTP {_formatar_codigos_resposta(response)} (download)")
 
     response.raise_for_status()
 
