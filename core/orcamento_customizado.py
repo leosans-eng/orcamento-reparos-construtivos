@@ -259,3 +259,18 @@ class OrcamentoCustomizado:
         orc.estado_referencia = dados.get("estado_referencia", "")
         orc.grupos = deepcopy(dados.get("grupos", []))
         return orc
+
+
+def item_indisponivel_na_base(item, sinapi, catalogo, estado) -> bool:
+    """Mesmo critério do fundo amarelo na grade do orçamento."""
+    from core.composicoes_proprias import custo_composicao_propria_item
+    from core.sinapi_busca import item_sinapi_ausente
+
+    if item["tipo"] == TIPO_SINAPI:
+        return item_sinapi_ausente(sinapi, item["codigo"], estado)
+    if item["tipo"] == TIPO_COMPOSICAO_PROPRIA:
+        _custo, tem_depreciado = custo_composicao_propria_item(
+            item, catalogo, sinapi, estado
+        )
+        return tem_depreciado
+    return False

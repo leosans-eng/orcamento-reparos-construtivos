@@ -36,6 +36,7 @@ class GradeOrcamento(tk.Frame):
         self.on_duplo_clique_qtd = on_duplo_clique_qtd
         self._linhas = []
         self._selecao_meta = None
+        self._tem_itens_depreciados = False
         self._largura_descricao = 280
         self._montar()
 
@@ -113,6 +114,10 @@ class GradeOrcamento(tk.Frame):
             linha["frame"].destroy()
         self._linhas.clear()
         self._selecao_meta = None
+        self._tem_itens_depreciados = False
+
+    def tem_itens_depreciados(self) -> bool:
+        return self._tem_itens_depreciados
 
     def posicao_scroll(self):
         return self.canvas.yview()[0]
@@ -126,6 +131,7 @@ class GradeOrcamento(tk.Frame):
         cor_fundo = COR_GRUPO if estilo == "grupo" else COR_FUNDO
         if alerta_depreciado and estilo != "grupo":
             cor_fundo = COR_ALERTA_DEPRECIADO
+            self._tem_itens_depreciados = True
         elif estilo != "grupo" and idx % 2 == 1:
             cor_fundo = "#f7f9fa"
 

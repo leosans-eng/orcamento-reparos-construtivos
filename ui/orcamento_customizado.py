@@ -16,6 +16,7 @@ from core.orcamento_customizado import (
     TIPO_SINAPI,
     OrcamentoCustomizado,
     custo_unitario_com_bdi,
+    item_indisponivel_na_base,
     rotulo_item,
     subtotal_item,
 )
@@ -31,7 +32,6 @@ from core.orcamento_storage import (
     salvar_arquivo,
 )
 from core.sinapi_busca import (
-    item_sinapi_ausente,
     obter_item_sinapi,
     obter_unidades_sinapi,
     pesquisar_sinapi,
@@ -1491,6 +1491,14 @@ class OrcamentoCustomizadoFrame(tk.Frame):
         )
 
     def _exportar_planilha(self):
+        if self.grade.tem_itens_depreciados():
+            messagebox.showerror(
+                "Gerar Planilha",
+                "Há composições/insumos depreciados. Por favor, altere para um item atual.",
+                parent=self.winfo_toplevel(),
+            )
+            return
+
         DialogoSelecionarModeloPlanilha(
             self.winfo_toplevel(),
             on_selecionar=self._ao_selecionar_modelo_planilha,
@@ -1609,8 +1617,8 @@ class OrcamentoCustomizadoFrame(tk.Frame):
                     custo = item["custo_unitario"]
                     custo_bdi = custo_unitario_com_bdi(custo, bdi)
                     total = subtotal_item(item, bdi)
-                    indisponivel = item_sinapi_ausente(
-                        self.ctx.sinapi, item["codigo"], estado_atual
+                    indisponivel = item_indisponivel_na_base(
+                        item, self.ctx.sinapi, catalogo, estado_atual
                     )
                     self.grade.adicionar_linha(
                         meta={
