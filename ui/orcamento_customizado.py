@@ -746,7 +746,7 @@ class OrcamentoCustomizadoFrame(tk.Frame):
 
         tk.Label(linha_salvo, text="Selecionar:", bg="#ececec").pack(side="left")
         self.combo_orcamento = ttk.Combobox(
-            linha_salvo, width=22, state="readonly"
+            linha_salvo, width=30, state="readonly"
         )
         self.combo_orcamento.pack(side="left", padx=(4, 8))
         self.combo_orcamento.bind("<<ComboboxSelected>>", self._ao_trocar_orcamento)

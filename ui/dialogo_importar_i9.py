@@ -69,8 +69,16 @@ class DialogoImportarI9(tk.Toplevel):
         self.label_arquivo.place(relx=0.5, rely=0.5, anchor="center")
 
         if _SUPORTE_ARRASTAR:
-            windnd.hook_dropfiles(self.zona_arquivo, func=self._ao_soltar_arquivo)
-            windnd.hook_dropfiles(self, func=self._ao_soltar_arquivo)
+            windnd.hook_dropfiles(
+                self.zona_arquivo,
+                func=self._ao_soltar_arquivo,
+                force_unicode=True,
+            )
+            windnd.hook_dropfiles(
+                self,
+                func=self._ao_soltar_arquivo,
+                force_unicode=True,
+            )
             dica_arrastar = "Arraste o arquivo .xlsx para esta janela"
         else:
             dica_arrastar = "Use o botão abaixo para localizar o arquivo"
@@ -122,7 +130,15 @@ class DialogoImportarI9(tk.Toplevel):
 
     def _normalizar_caminho_soltado(self, caminho) -> str:
         if isinstance(caminho, bytes):
-            texto = caminho.decode("utf-8", errors="replace")
+            texto = None
+            for encoding in ("utf-16-le", "mbcs", "cp1252"):
+                try:
+                    texto = caminho.decode(encoding).rstrip("\x00")
+                    break
+                except UnicodeDecodeError:
+                    continue
+            if texto is None:
+                texto = caminho.decode("utf-8", errors="replace")
         else:
             texto = str(caminho)
         return texto.strip().strip("{").strip("}").strip()
