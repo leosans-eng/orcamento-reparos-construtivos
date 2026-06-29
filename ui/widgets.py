@@ -156,6 +156,28 @@ def formatar_decimal_br(valor, casas: int = 4) -> str:
     return _us_para_br_numero(texto_us)
 
 
+def formatar_quantidade_edicao(valor, casas: int = 4) -> str:
+    """Quantidade para campos de edição — sem separador de milhar."""
+    try:
+        v = float(valor)
+    except (TypeError, ValueError):
+        return str(valor)
+    if casas <= 0 or v == int(v):
+        return str(int(v))
+    texto = f"{v:.{casas}f}".rstrip("0").rstrip(".")
+    return texto.replace(".", ",")
+
+
+def parse_decimal_br(texto) -> float:
+    """Interpreta número em notação brasileira (vírgula decimal, ponto opcional de milhar)."""
+    normalizado = str(texto).strip()
+    if not normalizado:
+        raise ValueError("valor vazio")
+    if "," in normalizado:
+        normalizado = normalizado.replace(".", "").replace(",", ".")
+    return float(normalizado)
+
+
 def configurar_estilos_ttk(root):
     """Estilos achatados de botões (mesmo padrão do Gerador de Relatórios Fotográficos)."""
     if getattr(root, "_orc_estilos_ttk", False):

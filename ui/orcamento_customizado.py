@@ -58,6 +58,8 @@ from ui.widgets import (
     valores_combo_estado,
     formatar_decimal_br,
     formatar_moeda_br,
+    formatar_quantidade_edicao,
+    parse_decimal_br,
 )
 
 DEBOUNCE_BUSCA_MS = 250
@@ -122,7 +124,9 @@ class DialogoEditarQuantidade(tk.Toplevel):
         linha_qtd = tk.Frame(painel, bg="#ececec")
         linha_qtd.pack(fill="x", pady=(0, 12))
         tk.Label(linha_qtd, text="Nova quantidade:", bg="#ececec").pack(side="left")
-        self.var_quantidade = tk.StringVar(value=_formatar_quantidade(quantidade_atual))
+        self.var_quantidade = tk.StringVar(
+            value=formatar_quantidade_edicao(quantidade_atual)
+        )
         entrada = ttk.Entry(linha_qtd, textvariable=self.var_quantidade, width=14)
         entrada.pack(side="left", padx=(8, 0))
         entrada.focus_set()
@@ -498,7 +502,7 @@ class DialogoBuscaSinapi(tk.Toplevel):
         return tipo_sinapi_para_filtro(selecao)
 
     def _parse_quantidade(self, texto):
-        return float(str(texto).strip().replace(",", "."))
+        return parse_decimal_br(texto)
 
     def _confirmar(self, fechar=False):
         selecionado = self.tree.selection()
@@ -787,7 +791,7 @@ class DialogoBuscaComposicaoPropria(tk.Toplevel):
         )
 
     def _parse_quantidade(self, texto):
-        return float(str(texto).strip().replace(",", "."))
+        return parse_decimal_br(texto)
 
     def _confirmar(self):
         selecionado = self.tree.selection()
@@ -1301,7 +1305,7 @@ class OrcamentoCustomizadoFrame(tk.Frame):
         return self.grade.obter_grupo_id_selecionado()
 
     def _parse_quantidade(self, texto):
-        return float(str(texto).strip().replace(",", "."))
+        return parse_decimal_br(texto)
 
     def _inserir_item_sinapi(
         self, grupo_id, codigo, descricao, unidade, custo, quantidade, estado, tipo_sinapi=""
