@@ -21,8 +21,10 @@ COLUNAS: tuple[Coluna, ...] = (
 
 COR_FUNDO = "#ffffff"
 COR_CABECALHO = "#e0e8ec"
-COR_SELECAO = "#cce4f0"
-COR_GRUPO = "#e8f4f8"
+COR_GRUPO = "#8eccef"
+COR_GRUPO_SELECAO = "#3d8ec4"
+COR_TEXTO_GRUPO_SELECAO = "#ffffff"
+COR_ITEM_SELECAO = "#d2d6da"
 COR_BORDA = "#cccccc"
 COR_COMPOSICAO = "#7b5e00"
 COR_ALERTA_DEPRECIADO = "#fff8e1"
@@ -302,6 +304,7 @@ class GradeOrcamento(tk.Frame):
             "meta": meta,
             "estilo": estilo,
             "cor_base": cor_fundo,
+            "cor_texto": cor_texto,
             "lbl_descricao": widgets.get("lbl_descricao"),
         }
         self._linhas.append(registro)
@@ -422,17 +425,32 @@ class GradeOrcamento(tk.Frame):
         self.canvas.yview_moveto(fracao)
 
     def _aplicar_destaque(self, linha):
+        if linha["estilo"] == "grupo":
+            cor = COR_GRUPO_SELECAO
+            fg = COR_TEXTO_GRUPO_SELECAO
+        else:
+            cor = COR_ITEM_SELECAO
+            fg = linha["cor_texto"]
+        try:
+            linha["frame"].configure(bg=cor)
+        except tk.TclError:
+            pass
         for widget in linha["frame"].winfo_children():
             try:
-                widget.configure(bg=COR_SELECAO)
+                widget.configure(bg=cor, fg=fg)
             except tk.TclError:
                 pass
 
     def _remover_destaque(self, linha):
         cor = linha["cor_base"]
+        fg = linha["cor_texto"]
+        try:
+            linha["frame"].configure(bg=cor)
+        except tk.TclError:
+            pass
         for widget in linha["frame"].winfo_children():
             try:
-                widget.configure(bg=cor)
+                widget.configure(bg=cor, fg=fg)
             except tk.TclError:
                 pass
 
