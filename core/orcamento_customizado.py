@@ -42,16 +42,27 @@ def _criar_item_sinapi(codigo, descricao, unidade, custo_unitario, quantidade, e
     }
 
 
-def _criar_composicao_propria(composicao_catalogo_id, codigo, nome, unidade, quantidade=1.0):
-    return {
+def _criar_composicao_propria(
+    composicao_catalogo_id,
+    codigo,
+    nome,
+    unidade,
+    quantidade=1.0,
+    *,
+    custo_unitario_referencia=None,
+):
+    item = {
         "id": _novo_id(),
         "tipo": TIPO_COMPOSICAO_PROPRIA,
-        "composicao_catalogo_id": str(composicao_catalogo_id).strip(),
+        "composicao_catalogo_id": str(composicao_catalogo_id or "").strip(),
         "codigo": str(codigo).strip(),
         "nome": str(nome).strip(),
         "unidade": str(unidade).strip(),
         "quantidade": float(quantidade),
     }
+    if custo_unitario_referencia is not None:
+        item["custo_unitario_referencia"] = float(custo_unitario_referencia)
+    return item
 
 
 def aplicar_bdi(valor, bdi_percent):
@@ -184,17 +195,31 @@ class OrcamentoCustomizado:
         return item["id"]
 
     def adicionar_composicao_propria(
-        self, grupo_id, composicao_catalogo_id, codigo, nome, unidade, quantidade=1.0
+        self,
+        grupo_id,
+        composicao_catalogo_id,
+        codigo,
+        nome,
+        unidade,
+        quantidade=1.0,
+        *,
+        custo_unitario_referencia=None,
     ):
         grupo = self.obter_grupo(grupo_id)
         if grupo is None:
             raise ValueError("Grupo não encontrado.")
-        if not composicao_catalogo_id:
-            raise ValueError("Composição do catálogo não informada.")
+        catalogo_id = str(composicao_catalogo_id or "").strip()
+        if not catalogo_id and not str(codigo or "").strip() and not str(nome or "").strip():
+            raise ValueError("Informe a composição do catálogo ou os dados do item.")
         if quantidade <= 0:
             raise ValueError("A quantidade deve ser maior que zero.")
         item = _criar_composicao_propria(
-            composicao_catalogo_id, codigo, nome, unidade, quantidade
+            catalogo_id,
+            codigo,
+            nome,
+            unidade,
+            quantidade,
+            custo_unitario_referencia=custo_unitario_referencia,
         )
         grupo["itens"].append(item)
         return item["id"]

@@ -148,17 +148,27 @@ def importar_planilha_i9(caminho: str, catalogo=None, sinapi=None) -> ResultadoI
             if composicao is None:
                 rotulo = descricao or codigo
                 resultado.avisos.append(
-                    f"Composição própria não encontrada no catálogo: {codigo} — {rotulo}"
+                    f"Composição própria não cadastrada no ORC: {codigo} — {rotulo} "
+                    "(importada para substituição na grade)."
                 )
-                continue
-            orcamento.adicionar_composicao_propria(
-                grupo_atual_id,
-                composicao["id"],
-                composicao.get("codigo", codigo),
-                composicao.get("nome", descricao),
-                composicao.get("unidade", unidade) or unidade,
-                quantidade,
-            )
+                orcamento.adicionar_composicao_propria(
+                    grupo_atual_id,
+                    "",
+                    codigo,
+                    descricao or codigo,
+                    unidade,
+                    quantidade,
+                    custo_unitario_referencia=preco_sem_bdi if preco_sem_bdi > 0 else None,
+                )
+            else:
+                orcamento.adicionar_composicao_propria(
+                    grupo_atual_id,
+                    composicao["id"],
+                    composicao.get("codigo", codigo),
+                    composicao.get("nome", descricao),
+                    composicao.get("unidade", unidade) or unidade,
+                    quantidade,
+                )
         else:
             if preco_sem_bdi <= 0:
                 resultado.avisos.append(

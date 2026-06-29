@@ -131,5 +131,11 @@ def custo_composicao_propria_item(item, catalogo, sinapi, estado):
     """
     composicao = obter_composicao_por_id(catalogo, item.get("composicao_catalogo_id"))
     if composicao is None:
+        referencia = item.get("custo_unitario_referencia")
+        if referencia is not None:
+            try:
+                return float(referencia), True
+            except (TypeError, ValueError):
+                pass
         return 0.0, True
     return calcular_custo_unitario(composicao, sinapi, estado)

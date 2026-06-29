@@ -17,6 +17,7 @@ from ui.widgets import (
     centralizar_janela,
     criar_barra_modulo,
     estado_do_combo,
+    formatar_moeda_br,
     valores_combo_estado,
 )
 
@@ -343,10 +344,7 @@ class ConsultaSinapiFrame(tk.Frame):
         self.tree.delete(*self.tree.get_children())
         for _, linha in df.iterrows():
             custo = linha.get("custo", 0)
-            try:
-                custo_fmt = f"R$ {float(custo):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-            except (TypeError, ValueError):
-                custo_fmt = str(custo)
+            custo_fmt = formatar_moeda_br(custo)
 
             self.tree.insert(
                 "",

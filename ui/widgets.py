@@ -130,6 +130,25 @@ def _configurar_botao_colorido(style, nome, *, background, active, pressed, padd
     )
 
 
+def formatar_moeda_br(valor) -> str:
+    """Formata valor em reais sem separador de milhar (ex.: R$ 11321,57)."""
+    try:
+        return f"R$ {float(valor):.2f}".replace(".", ",")
+    except (TypeError, ValueError):
+        return str(valor)
+
+
+def formatar_decimal_br(valor, casas: int = 4) -> str:
+    """Formata decimal com vírgula, sem separador de milhar."""
+    try:
+        v = float(valor)
+        if casas <= 0 or v == int(v):
+            return str(int(v))
+        return f"{v:.{casas}f}".rstrip("0").rstrip(".").replace(".", ",")
+    except (TypeError, ValueError):
+        return str(valor)
+
+
 def configurar_estilos_ttk(root):
     """Estilos achatados de botões (mesmo padrão do Gerador de Relatórios Fotográficos)."""
     if getattr(root, "_orc_estilos_ttk", False):

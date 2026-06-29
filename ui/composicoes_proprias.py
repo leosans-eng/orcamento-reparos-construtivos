@@ -25,6 +25,8 @@ from ui.widgets import (
     confirmar_exclusao_com_espera,
     criar_barra_modulo,
     estado_do_combo,
+    formatar_decimal_br,
+    formatar_moeda_br,
     perguntar_texto,
     valores_combo_estado,
 )
@@ -33,20 +35,11 @@ COR_DEPRECIADO = "#fff8e1"
 
 
 def _formatar_moeda(valor):
-    try:
-        return f"R$ {float(valor):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-    except (TypeError, ValueError):
-        return str(valor)
+    return formatar_moeda_br(valor)
 
 
 def _formatar_quantidade(valor):
-    try:
-        v = float(valor)
-        if v == int(v):
-            return str(int(v))
-        return f"{v:,.4f}".rstrip("0").rstrip(".").replace(".", ",")
-    except (TypeError, ValueError):
-        return str(valor)
+    return formatar_decimal_br(valor, casas=4)
 
 
 class DialogoComponenteMercado(tk.Toplevel):

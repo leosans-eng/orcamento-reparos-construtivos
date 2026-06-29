@@ -56,6 +56,8 @@ from ui.widgets import (
     estado_do_combo,
     perguntar_texto,
     valores_combo_estado,
+    formatar_decimal_br,
+    formatar_moeda_br,
 )
 
 DEBOUNCE_BUSCA_MS = 250
@@ -63,20 +65,11 @@ UNIDADE_TODAS = "Todas"
 
 
 def _formatar_moeda(valor):
-    try:
-        return f"R$ {float(valor):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-    except (TypeError, ValueError):
-        return str(valor)
+    return formatar_moeda_br(valor)
 
 
 def _formatar_quantidade(valor):
-    try:
-        v = float(valor)
-        if v == int(v):
-            return str(int(v))
-        return f"{v:,.4f}".rstrip("0").rstrip(".").replace(".", ",")
-    except (TypeError, ValueError):
-        return str(valor)
+    return formatar_decimal_br(valor, casas=4)
 
 
 def _formatar_bdi(valor):
