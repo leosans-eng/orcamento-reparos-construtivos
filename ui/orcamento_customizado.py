@@ -928,12 +928,6 @@ class OrcamentoCustomizadoFrame(tk.Frame):
         ).pack(side="left", padx=(0, 4))
         ttk.Button(
             linha_etapas_1,
-            text="Editar nome da etapa",
-            command=self._renomear_grupo,
-            style="Edit.Compact.TButton",
-        ).pack(side="left", padx=(0, 4))
-        ttk.Button(
-            linha_etapas_1,
             text="Etapa ↑",
             command=lambda: self._mover_grupo(-1),
             style="Compact.TButton",
@@ -952,12 +946,6 @@ class OrcamentoCustomizadoFrame(tk.Frame):
             text="Remover etapa/item",
             command=self._remover_selecionado,
             style="Delete.Compact.TButton",
-        ).pack(side="left", padx=(0, 4))
-        ttk.Button(
-            linha_etapas_2,
-            text="Editar item",
-            command=self._editar_item_sinapi,
-            style="Accent.Compact.TButton",
         ).pack(side="left", padx=(0, 4))
         ttk.Button(
             linha_etapas_2,
@@ -1014,7 +1002,10 @@ class OrcamentoCustomizadoFrame(tk.Frame):
 
         painel_grade = tk.LabelFrame(
             conteudo,
-            text="Estrutura do orçamento  ·  Ctrl/Shift+clique: seleção múltipla  ·  Delete: remover",
+            text=(
+                "Estrutura do orçamento  ·  Para alterar itens editáveis, clique duas vezes  ·  "
+                "Ctrl/Shift+clique: seleção múltipla  ·  Delete: remover"
+            ),
             bg="#ececec",
             padx=6,
             pady=6,
@@ -1024,6 +1015,8 @@ class OrcamentoCustomizadoFrame(tk.Frame):
         self.grade = GradeOrcamento(
             painel_grade,
             on_duplo_clique_qtd=self._dialogo_editar_quantidade,
+            on_duplo_clique_codigo=self._editar_item_sinapi,
+            on_duplo_clique_descricao_grupo=self._renomear_grupo,
             on_tecla_delete=lambda _e: self._remover_selecionado(silencioso=True),
         )
         self.grade.pack(fill="both", expand=True)
@@ -1500,23 +1493,17 @@ class OrcamentoCustomizadoFrame(tk.Frame):
             ao_confirmar,
         )
 
-    def _grupo_id_para_acoes(self):
-        meta = self._meta_selecionada()
-        if not meta:
-            return None
-        if meta["tipo"] == TIPO_GRUPO:
-            return meta["id"]
-        return meta.get("grupo_id")
-
-    def _renomear_grupo(self):
-        grupo_id = self._grupo_id_para_acoes()
+    def _renomear_grupo(self, grupo_id=None):
         if not grupo_id:
-            messagebox.showinfo(
-                "Editar nome da etapa",
-                "Selecione uma etapa na estrutura do orçamento.",
-                parent=self.winfo_toplevel(),
-            )
-            return
+            meta = self._meta_selecionada()
+            if not meta or meta["tipo"] != TIPO_GRUPO:
+                messagebox.showinfo(
+                    "Editar nome da etapa",
+                    "Selecione uma etapa na estrutura do orçamento.",
+                    parent=self.winfo_toplevel(),
+                )
+                return
+            grupo_id = meta["id"]
         grupo = self.orcamento.obter_grupo(grupo_id)
         if grupo is None:
             return
@@ -1673,8 +1660,9 @@ class OrcamentoCustomizadoFrame(tk.Frame):
             ao_confirmar,
         )
 
-    def _editar_item_sinapi(self):
-        meta = self._meta_selecionada()
+    def _editar_item_sinapi(self, meta=None):
+        from_duplo_clique = meta is not None
+        meta = meta or self._meta_selecionada()
         if not meta or meta["tipo"] == TIPO_GRUPO:
             messagebox.showinfo(
                 "Editar item",
@@ -1683,7 +1671,7 @@ class OrcamentoCustomizadoFrame(tk.Frame):
             )
             return
 
-        if len(self.grade.obter_metas_selecionadas()) > 1:
+        if not from_duplo_clique and len(self.grade.obter_metas_selecionadas()) > 1:
             messagebox.showinfo(
                 "Editar item",
                 "Selecione apenas um item para editar.",
