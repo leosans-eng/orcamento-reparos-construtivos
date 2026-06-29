@@ -152,6 +152,83 @@ class DialogoEditarQuantidade(tk.Toplevel):
         self.destroy()
 
 
+class DialogoTrocarOrdemEtapa(tk.Toplevel):
+    def __init__(self, parent, nome_etapa, posicao_atual, opcoes_posicao, on_confirmar):
+        super().__init__(parent)
+        self.on_confirmar = on_confirmar
+        self.title("Trocar ordem da etapa")
+        aplicar_icone_janela(self)
+        self.configure(bg="#ececec")
+        self.transient(parent)
+        self.grab_set()
+        self.resizable(False, False)
+
+        painel = tk.Frame(self, bg="#ececec", padx=16, pady=14)
+        painel.pack(fill="both", expand=True)
+
+        tk.Label(
+            painel,
+            text="Etapa selecionada:",
+            font=("Arial", 9, "bold"),
+            fg="#444444",
+            bg="#ececec",
+            anchor="w",
+        ).pack(fill="x")
+
+        tk.Label(
+            painel,
+            text=f"{posicao_atual} — {nome_etapa}",
+            font=("Arial", 9),
+            fg="#333333",
+            bg="#f5fafc",
+            anchor="w",
+            padx=8,
+            pady=8,
+        ).pack(fill="x", pady=(4, 12))
+
+        linha_pos = tk.Frame(painel, bg="#ececec")
+        linha_pos.pack(fill="x", pady=(0, 12))
+        tk.Label(linha_pos, text="Nova posição:", bg="#ececec").pack(side="left")
+
+        indice_inicial = max(0, min(posicao_atual - 1, len(opcoes_posicao) - 1))
+        self.var_posicao = tk.StringVar(value=opcoes_posicao[indice_inicial])
+        self.combo_posicao = ttk.Combobox(
+            linha_pos,
+            textvariable=self.var_posicao,
+            values=opcoes_posicao,
+            state="readonly",
+            width=42,
+        )
+        self.combo_posicao.pack(side="left", padx=(8, 0), fill="x", expand=True)
+        self.combo_posicao.current(indice_inicial)
+        self.combo_posicao.focus_set()
+
+        botoes = ttk.Frame(painel)
+        botoes.pack(fill="x")
+        ttk.Button(botoes, text="Cancelar", command=self.destroy, style="Delete.TButton").pack(
+            side="right", padx=(6, 0)
+        )
+        ttk.Button(botoes, text="Confirmar", command=self._confirmar, style="Add.TButton").pack(
+            side="right"
+        )
+
+        self.bind("<Escape>", lambda _e: self.destroy())
+        self.update_idletasks()
+        centralizar_janela(self, parent)
+
+    def _confirmar(self):
+        indice = self.combo_posicao.current()
+        if indice < 0:
+            messagebox.showwarning(
+                "Trocar ordem da etapa",
+                "Selecione uma posição válida.",
+                parent=self,
+            )
+            return
+        self.on_confirmar(indice + 1)
+        self.destroy()
+
+
 class DialogoBuscaSinapi(tk.Toplevel):
     def __init__(
         self,
@@ -941,6 +1018,12 @@ class OrcamentoCustomizadoFrame(tk.Frame):
             text="Etapa ↓",
             command=lambda: self._mover_grupo(1),
             style="Compact.TButton",
+        ).pack(side="left", padx=(0, 4))
+        ttk.Button(
+            linha_etapas_1,
+            text="Trocar ordem da etapa",
+            command=self._trocar_ordem_etapa,
+            style="Compact.TButton",
         ).pack(side="left")
 
         linha_etapas_2 = tk.Frame(frame_etapas, bg="#ececec")
@@ -1542,6 +1625,55 @@ class OrcamentoCustomizadoFrame(tk.Frame):
             messagebox.showwarning("Etapa", str(exc), parent=self.winfo_toplevel())
             return
         self._atualizar_grade(focar_meta={"tipo": TIPO_GRUPO, "id": meta["id"]})
+
+    def _trocar_ordem_etapa(self):
+        meta = self._meta_selecionada()
+        if not meta or meta["tipo"] != TIPO_GRUPO:
+            messagebox.showinfo(
+                "Trocar ordem da etapa",
+                "Selecione a linha da etapa (cabeçalho do grupo) para reordenar.",
+                parent=self.winfo_toplevel(),
+            )
+            return
+
+        grupo_id = meta["id"]
+        grupo = self.orcamento.obter_grupo(grupo_id)
+        if grupo is None:
+            return
+
+        indice_atual = next(
+            (i for i, g in enumerate(self.orcamento.grupos) if g["id"] == grupo_id),
+            None,
+        )
+        if indice_atual is None:
+            return
+
+        posicao_atual = indice_atual + 1
+        opcoes_posicao = [
+            f"{idx} — {g['nome']}"
+            for idx, g in enumerate(self.orcamento.grupos, start=1)
+        ]
+
+        def ao_confirmar(posicao):
+            try:
+                if not self.orcamento.mover_grupo_para_posicao(grupo_id, posicao):
+                    return
+            except ValueError as exc:
+                messagebox.showwarning(
+                    "Trocar ordem da etapa",
+                    str(exc),
+                    parent=self.winfo_toplevel(),
+                )
+                return
+            self._atualizar_grade(focar_meta={"tipo": TIPO_GRUPO, "id": grupo_id})
+
+        DialogoTrocarOrdemEtapa(
+            self.winfo_toplevel(),
+            grupo["nome"],
+            posicao_atual,
+            opcoes_posicao,
+            ao_confirmar,
+        )
 
     def _mover_item(self, delta):
         meta = self._meta_selecionada()

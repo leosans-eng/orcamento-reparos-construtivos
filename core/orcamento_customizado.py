@@ -168,6 +168,24 @@ class OrcamentoCustomizado:
         )
         return True
 
+    def mover_grupo_para_posicao(self, grupo_id, posicao):
+        """Move etapa para a posição informada (1 = primeira etapa)."""
+        total = len(self.grupos)
+        if posicao < 1 or posicao > total:
+            raise ValueError(f"Informe uma posição entre 1 e {total}.")
+        indice_atual = next(
+            (i for i, grupo in enumerate(self.grupos) if grupo["id"] == grupo_id),
+            None,
+        )
+        if indice_atual is None:
+            raise ValueError("Grupo não encontrado.")
+        novo_indice = posicao - 1
+        if indice_atual == novo_indice:
+            return False
+        grupo = self.grupos.pop(indice_atual)
+        self.grupos.insert(novo_indice, grupo)
+        return True
+
     def mover_item(self, item_id, delta):
         grupo, item = self.obter_item(item_id)
         if item is None or grupo is None:
