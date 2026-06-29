@@ -285,6 +285,32 @@ class OrcamentoCustomizado:
         return orc
 
 
+def sincronizar_precos_sinapi_no_orcamento(orcamento, sinapi, estado):
+    """Atualiza custos e tipo dos itens SINAPI conforme a base carregada."""
+    estado_ref = str(estado or "").strip()
+    if not estado_ref:
+        return
+    from core.sinapi_busca import obter_item_sinapi
+
+    for grupo in orcamento.grupos:
+        for item in grupo.get("itens", []):
+            if item["tipo"] != TIPO_SINAPI:
+                continue
+            linha = obter_item_sinapi(sinapi, item["codigo"], estado_ref)
+            if linha is None:
+                continue
+            try:
+                item["custo_unitario"] = float(
+                    linha.get("custo", item["custo_unitario"])
+                )
+            except (TypeError, ValueError):
+                pass
+            tipo = str(linha.get("tipo", "")).strip().upper()[:1]
+            if tipo in ("I", "C"):
+                item["tipo_sinapi"] = tipo
+            item["estado"] = estado_ref
+
+
 def rotulo_tipo_sinapi(item, sinapi=None) -> str:
     if item.get("tipo") != TIPO_SINAPI:
         return ""

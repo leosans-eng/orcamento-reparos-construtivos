@@ -16,7 +16,11 @@ from core.formatador_sinapi.comum import (
     planilha_ativa,
 )
 from core.formatador_sinapi.entrada import validar_caminho_planilha
-from core.orcamento_customizado import BDI_PADRAO, OrcamentoCustomizado
+from core.orcamento_customizado import (
+    BDI_PADRAO,
+    OrcamentoCustomizado,
+    sincronizar_precos_sinapi_no_orcamento,
+)
 
 
 @dataclass
@@ -81,7 +85,7 @@ def _nome_orcamento_importado(ws, caminho: Path) -> str:
     return f"Importado — {caminho.stem}"
 
 
-def importar_planilha_i9(caminho: str, catalogo=None) -> ResultadoImportacaoI9:
+def importar_planilha_i9(caminho: str, catalogo=None, sinapi=None) -> ResultadoImportacaoI9:
     """
     Lê uma planilha sintética i9 e monta um OrcamentoCustomizado editável.
 
@@ -185,5 +189,8 @@ def importar_planilha_i9(caminho: str, catalogo=None) -> ResultadoImportacaoI9:
             "Nenhuma etapa ou item reconhecido na planilha.\n"
             "Verifique se o arquivo segue o layout de Planilha Sintética do i9."
         )
+
+    if sinapi is not None and estado:
+        sincronizar_precos_sinapi_no_orcamento(orcamento, sinapi, estado)
 
     return resultado

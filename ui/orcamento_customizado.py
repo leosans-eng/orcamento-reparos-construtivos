@@ -19,6 +19,7 @@ from core.orcamento_customizado import (
     item_indisponivel_na_base,
     rotulo_item,
     rotulo_tipo_sinapi,
+    sincronizar_precos_sinapi_no_orcamento,
     subtotal_item,
 )
 from core.orcamento_storage import (
@@ -1214,7 +1215,9 @@ class OrcamentoCustomizadoFrame(tk.Frame):
         def ao_importar(caminho):
             try:
                 resultado = importar_planilha_i9(
-                    caminho, listar_composicoes_catalogo()
+                    caminho,
+                    listar_composicoes_catalogo(),
+                    self.ctx.sinapi,
                 )
             except (OSError, ValueError) as exc:
                 messagebox.showerror(
@@ -1810,29 +1813,9 @@ class OrcamentoCustomizadoFrame(tk.Frame):
         return self.grade.obter_metas_selecionadas()
 
     def _sincronizar_precos_sinapi(self, estado_atual):
-        if not estado_atual:
-            return
-        for grupo in self.orcamento.grupos:
-            for item in grupo.get("itens", []):
-                if item["tipo"] != TIPO_SINAPI:
-                    continue
-                if item.get("estado") == estado_atual:
-                    continue
-                linha = obter_item_sinapi(
-                    self.ctx.sinapi, item["codigo"], estado_atual
-                )
-                if linha is None:
-                    continue
-                try:
-                    item["custo_unitario"] = float(
-                        linha.get("custo", item["custo_unitario"])
-                    )
-                except (TypeError, ValueError):
-                    pass
-                tipo = str(linha.get("tipo", "")).strip().upper()[:1]
-                if tipo in ("I", "C"):
-                    item["tipo_sinapi"] = tipo
-                item["estado"] = estado_atual
+        sincronizar_precos_sinapi_no_orcamento(
+            self.orcamento, self.ctx.sinapi, estado_atual
+        )
 
     def _subtotal_grupo_calculado(self, grupo, bdi, catalogo, estado):
         total = 0.0
